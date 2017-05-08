@@ -1,0 +1,49 @@
+{
+  "title": "Split article",
+  "name": "split-article",
+  "version": "0.0.0-development",
+  "description": "A small js component, which splits html content evenly between multiple separate targets",
+  "main": "index.js",
+  "scripts": {
+    "build": "rollem",
+    "buildWatch": "npm run build -- --watch",
+    "unit": "mocha --require reify test/*.spec.js",
+    "unitWatch": "npm run unit -- --watch",
+    "format": "standard --fix -w src/*.js",
+    "lint": "standard --verbose src/*.js",
+    "test": "npm run format && npm run lint && npm run unit",
+    "semantic-release": "semantic-release pre && npm publish && semantic-release post",
+    "commit": "git-cz",
+    "commitAgain": "git-cz --retry"
+  },
+  "pre-commit": "test",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/meszaros-lajos-gyorgy/split-article.git"
+  },
+  "author": "Lajos Meszaros <m_lajos@hotmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/meszaros-lajos-gyorgy/split-article/issues"
+  },
+  "homepage": "https://github.com/meszaros-lajos-gyorgy/split-article#readme",
+  "devDependencies": {
+    "assert": "^1.4.1",
+    "cz-conventional-changelog": "^2.0.0",
+    "mocha": "^3.3.0",
+    "pre-commit": "^1.2.2",
+    "reify": "^0.10.0",
+    "semantic-release": "^6.3.6",
+    "standard": "^10.0.2"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
+  "dependencies": {
+    "rollem": "^1.11.3",
+    "rollup-plugin-buble": "^0.15.0",
+    "rollup-plugin-uglify": "^1.0.2"
+  }
+}

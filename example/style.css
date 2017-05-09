@@ -1,0 +1,38 @@
+html, body{
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body{
+  background: #eee;
+  overflow-x: scroll;
+}
+#target{
+  height: 100%;
+  min-height: 500px;
+  white-space: nowrap;
+}
+
+.container{
+  background: #bbb;
+  display: inline-block;
+  margin: 0 20px;
+  vertical-align: top;
+  white-space: normal;
+}
+
+.typeA{
+  height: 100vh;
+}
+.typeB{
+  height: 60vh;
+}
+.typeC{
+  height: 300px;
+  margin-top: calc(50vh - 150px);
+}
+.typeD{
+  height: 60vh;
+  margin-top: 40vh;
+}

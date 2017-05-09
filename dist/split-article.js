@@ -1,0 +1,2 @@
+!function(e,n){"object"==typeof exports&&"undefined"!=typeof module?module.exports=n():"function"==typeof define&&define.amd?define(n):e.SplitArticle=n()}(this,function(){"use strict";function e(e){n()?e():(e.done=!1,document.addEventListener("readystatechange",function(){n()&&!e.done&&(e.done=!0,e())}))}var n=function(){return["interactive","complete"].includes(document.readyState)};return function(n){e(function(){window.addEventListener("resize",function(){console.log("Window resized, need to recalculate stuff")})})}});
+//# sourceMappingURL=split-article.js.map

@@ -10,10 +10,10 @@ const app = http.createServer((req, res) => {
       switch (req.url) {
         case '/split-article.js':
           fs.readFile('./dist/split-article.js', 'utf8', (err, data) => {
-            if(err){
+            if (err) {
               res.write(404, {'Content-Type': 'text/plain'})
               res.write('Not found')
-            }else{
+            } else {
               res.writeHead(200, {'Content-Type': 'text/javascript'})
               res.write(data)
             }
@@ -24,10 +24,10 @@ const app = http.createServer((req, res) => {
           const matches = req.url.match(/^\/(\w+)(?:\/(?:index\.html)?)?$/)
           if (matches !== null) {
             fs.readFile('./examples/' + matches[1] + '/index.html', 'utf8', (err, data) => {
-              if(err){
+              if (err) {
                 res.write(404, {'Content-Type': 'text/plain'})
                 res.write('Not found')
-              }else{
+              } else {
                 res.writeHead(200, {'Content-Type': 'text/html'})
                 res.write(data.replace('<!-- script:live-reload -->', '<script src="' + process.env.BROWSER_REFRESH_URL + '"></script>'))
               }

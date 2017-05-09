@@ -9,16 +9,21 @@
     "buildWatch": "npm run build -- --watch",
     "unit": "mocha --require reify test/*.spec.js",
     "unitWatch": "npm run unit -- --watch",
-    "format": "standard --fix -w src/*.js",
+    "format": "standard --fix src/*.js",
     "lint": "standard --verbose src/*.js",
     "test": "npm run format && npm run lint && npm run unit",
     "semantic-release": "semantic-release pre && npm publish && semantic-release post",
     "commit": "git-cz",
     "commitAgain": "git-cz --retry",
     "examplesWatch": "browser-refresh ./testserver.js",
-    "testserver": "watch"
+    "testserver": "watch",
+    "stageDist": "git add dist"
   },
-  "pre-commit": "test",
+  "pre-commit": [
+    "test",
+    "build",
+    "stageDist"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/meszaros-lajos-gyorgy/split-article.git"

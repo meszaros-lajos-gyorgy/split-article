@@ -14,7 +14,9 @@
     "test": "npm run format && npm run lint && npm run unit",
     "semantic-release": "semantic-release pre && npm publish && semantic-release post",
     "commit": "git-cz",
-    "commitAgain": "git-cz --retry"
+    "commitAgain": "git-cz --retry",
+    "examplesWatch": "browser-refresh ./testserver.js",
+    "testserver": "watch"
   },
   "pre-commit": "test",
   "repository": {
@@ -29,8 +31,10 @@
   "homepage": "https://github.com/meszaros-lajos-gyorgy/split-article#readme",
   "devDependencies": {
     "assert": "^1.4.1",
+    "browser-refresh": "^1.7.1",
     "cz-conventional-changelog": "^2.0.0",
     "mocha": "^3.3.0",
+    "node-static": "^0.7.9",
     "pre-commit": "^1.2.2",
     "reify": "^0.10.0",
     "semantic-release": "^6.3.6",

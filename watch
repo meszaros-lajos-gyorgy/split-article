@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# rollem is not building when watch is started, we trigger that manually
+# https://github.com/bahmutov/rollem/issues/28
+npm run build && npm run buildWatch & npm run examplesWatch

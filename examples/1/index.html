@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Split text example</title>
+  <title>Split article example</title>
   <meta charset="utf-8" />
   <link rel="stylesheet" href="style.css" />
-  <script src="../dist/split-article.js"></script>
 </head>
 <body>
   <div id="source">
@@ -87,8 +86,10 @@
     <div class="container typeA"></div>
   </div>
   
+  <!-- script:live-reload -->
+  <script src="/split-article.js"></script>
   <script>
-splitArticle({
+var splitArticle = new SplitArticle({
   source: document.getElementById('source'),
   target: document.getElementById('target')
 });

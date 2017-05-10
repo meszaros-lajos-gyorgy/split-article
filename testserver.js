@@ -8,7 +8,8 @@ const app = http.createServer((req, res) => {
   req
     .on('end', () => {
       switch (req.url) {
-        case '/split-article.js':
+        case '../../dist/split-article.js':
+        case '/dist/split-article.js':
           fs.readFile('./dist/split-article.js', 'utf8', (err, data) => {
             if (err) {
               res.write(404, {'Content-Type': 'text/plain'})

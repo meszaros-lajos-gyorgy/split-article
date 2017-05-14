@@ -45,9 +45,6 @@
     "pre-commit": "^1.2.2",
     "reify": "^0.10.0",
     "rimraf": "^2.6.1",
-    "rollem": "^1.11.4",
-    "rollup-plugin-buble": "^0.15.0",
-    "rollup-plugin-uglify": "^1.0.2",
     "semantic-release": "^6.3.6",
     "standard": "^10.0.2"
   },
@@ -56,5 +53,13 @@
       "path": "./node_modules/cz-conventional-changelog"
     }
   },
-  "dependencies": {}
+  "dependencies": {
+    "ramda": "^0.23.0",
+    "rollem": "^1.11.4",
+    "rollup-plugin-buble": "^0.15.0",
+    "rollup-plugin-commonjs": "^8.0.2",
+    "rollup-plugin-node-resolve": "^3.0.0",
+    "rollup-plugin-ramda": "^1.0.5",
+    "rollup-plugin-uglify": "^1.0.2"
+  }
 }

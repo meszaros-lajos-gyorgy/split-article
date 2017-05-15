@@ -1,3 +1,4 @@
+/*
 const http = require('http')
 const nodeStatic = require('node-static')
 const fs = require('fs')
@@ -56,4 +57,54 @@ app.listen(3000, '0.0.0.0', () => {
   if (process.send) {
     process.send('online')
   }
+})
+*/
+
+const express = require('express')
+const reload = require('reload')
+const fs = require('fs')
+const http = require('http')
+const path = require('path')
+
+const app = express()
+const server = http.createServer(app)
+
+let reloadClient = ''
+
+fs.readFile(path.join(__dirname, './node_modules/reload/lib/reload-client.js'), 'utf8', (err, data) => {
+  reloadClient = data
+})
+
+reload(server, app)
+
+app.use(express.static(path.join(__dirname, './dist')))
+
+app.get('/reload.js', (req, res) => {
+  res.writeHead(200, {'Content-Type': 'text/javascript'})
+  res.write(reloadClient)
+  res.end()
+})
+
+app.get('/', (req, res) => {
+  res.writeHead(200, {'Content-Type': 'text/html'})
+  res.write(`<!DOCTYPE html>
+<html>
+<head>
+  <title>Split article example</title>
+  <meta charset="utf-8" />
+</head>
+<body>
+  
+  <script src="/reload.js"></script>
+</body>
+</html>`)
+  res.end()
+})
+
+app.get('/:folder/', (req, res) => {
+  // req.params.folder
+})
+
+server.listen(3000, '0.0.0.0', () => {
+  console.log('server started @ 0.0.0.0:3000');
 })

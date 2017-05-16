@@ -7,12 +7,6 @@ const path = require('path')
 const app = express()
 const server = http.createServer(app)
 
-let reloadClient = ''
-
-fs.readFile(path.join(__dirname, '../node_modules/reload/lib/reload-client.js'), 'utf8', (err, data) => {
-  reloadClient = data
-})
-
 reload(server, app)
 
 const fetchExampleFolders = () => new Promise((resolve, reject) => {
@@ -37,9 +31,7 @@ const fetchExampleFolders = () => new Promise((resolve, reject) => {
 })
 
 app.get('/reload.js', (req, res) => {
-  res.writeHead(200, {'Content-Type': 'text/javascript'})
-  res.write(reloadClient)
-  res.end()
+  res.sendFile(path.join(__dirname, '../node_modules/reload/lib/reload-client.js'))
 })
 
 app.get('/', (req, res) => fetchExampleFolders()
@@ -72,7 +64,7 @@ app.get('/', (req, res) => fetchExampleFolders()
   })
 )
 
-app.use(/^\/\w+\/?$/, (req, res, next) => {
+app.use(/^\/\w+\/$/, (req, res, next) => {
   const folder = req.originalUrl.replace('/', '')
   
   fs.lstat(path.join(__dirname, folder), (err, stats) => {

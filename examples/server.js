@@ -7,6 +7,15 @@ const path = require('path')
 const app = express()
 const server = http.createServer(app)
 
+let projectName = ''
+
+fs.readFile(path.join(__dirname, '../package.json'), 'utf8', (err, rawData) => {
+  try{
+    const data = JSON.parse(rawData)
+    projectName = data.name
+  }catch(e){}
+})
+
 reload(server, app)
 
 const fetchExampleFolders = () => new Promise((resolve, reject) => {
@@ -45,10 +54,11 @@ app.get('/', (req, res) => fetchExampleFolders()
     res.write(`<!DOCTYPE html>
 <html>
 <head>
-  <title>Example uses of split-article</title>
+  <title>Example uses of "${projectName}"</title>
   <meta charset="utf-8" />
 </head>
 <body>
+  <h1>Example uses of "${projectName}"</h1>
   ${pages}
   <script src="/reload.js"></script>
 </body>

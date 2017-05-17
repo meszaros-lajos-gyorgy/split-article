@@ -59,7 +59,7 @@ const getMeasuredWidth = (source, width) => {
 const splitToWords = child => {
   const elements = child.innerHTML.match(/(?:<[^>]+>|[^\r\n\t <]+)/g)
   const tags = []
-  
+
   return reduce((words, element) => {
     if (element.match(/^<\//) !== null) {
       tags.pop()
@@ -72,7 +72,7 @@ const splitToWords = child => {
         map(tag => '</' + replace(/^<(\w+).+$/, '$1', tag) + '>', reverse(tags))
       ], words)
     }
-    
+
     return words
   }, [], elements)
 }
@@ -81,12 +81,12 @@ const renderWord = ([openingTags, content, closingTags]) => join('', openingTags
 
 const getWordWidths = (child, paragraph) => {
   child.innerHTML = join(' ', map(renderWord, paragraph)) + '<span class="space">&nbsp;</span>'
-  
+
   const space = child.querySelector('.space')
   const spaceWidth = space.scrollWidth
-  
+
   space.parentNode.removeChild(space)
-  
+
   return {
     spaceWidth: spaceWidth,
     wordWidths: map(node => node.scrollWidth, Array.from(child.children))
@@ -106,20 +106,20 @@ class SplitArticle {
 
       console.log(distributeText(textSize, containerSizes)) // [3, 3, 2, 2]
       */
-      
+
       this.children = Array.from(this.config.source.children)
       this.config.source.style = 'height:0;position:absolute;overflow:hidden'
-      
+
       this.measuredWidth = getMeasuredWidth(this.config.source, this.config.width)
       this.config.source.style.width = this.measuredWidth + 'px'
-      
+
       const paragraphs = map(splitToWords, this.children)
-      
+
       // ------------
-      
+
       const {spaceWidth, wordWidths} = getWordWidths(this.children[0], paragraphs[0])
       const containerWidth = this.measuredWidth
-      
+
       const lines = reduce((lines, ww) => {
         lines = when(
           either(
@@ -128,7 +128,7 @@ class SplitArticle {
           ),
           append([])
         )(lines)
-        
+
         return converge(
           adjust(append(ww)),
           [
@@ -137,16 +137,16 @@ class SplitArticle {
           ]
         )(lines)
       }, [], wordWidths)
-      
+
       console.log(lines)
-      
+
       // ------------
-      
+
       // console.log(map(prop('scrollHeight'))(this.children))
-      
+
       /*
       window.addEventListener('resize', () => {
-        
+
       })
       */
     })

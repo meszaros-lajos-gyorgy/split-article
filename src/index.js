@@ -1,23 +1,28 @@
 import onReady from './helpers/onready'
 import {
-  // always,
-  // apply,
+  add,
+  adjust,
+  append,
   clone,
   compose,
-  // curryN,
-  // gt,
-  // ifElse,
-  // inc,
+  converge,
+  dec,
+  either,
+  identity,
+  inc,
+  isEmpty,
   join,
-  // length,
-  // map,
+  last,
+  length,
+  map,
   merge,
-  // modulo,
-  // multiply,
-  // prop,
-  repeat
-  // sum,
-  // zip
+  multiply,
+  reduce,
+  repeat,
+  replace,
+  reverse,
+  sum,
+  when
 } from 'ramda'
 
 /*
@@ -51,6 +56,45 @@ const getMeasuredWidth = (source, width) => {
   return result
 }
 
+const splitToWords = child => {
+  const elements = child.innerHTML.match(/(?:<[^>]+>|[^\r\n\t <]+)/g)
+  const tags = []
+  
+  return reduce((words, element) => {
+    if (element.match(/^<\//) !== null) {
+      tags.pop()
+    } else if (element.match(/^</) !== null) {
+      tags.push(element)
+    } else {
+      words = append([
+        clone(tags),
+        element,
+        map(tag => '</' + replace(/^<(\w+).+$/, '$1', tag) + '>', reverse(tags))
+      ], words)
+    }
+    
+    return words
+  }, [], elements)
+}
+
+const renderWord = ([openingTags, content, closingTags]) => join('', openingTags) + content + join('', closingTags)
+
+const getWordWidths = (child, paragraph) => {
+  child.innerHTML = join(' ', map(renderWord, paragraph)) + '<span class="space">&nbsp;</span>'
+  
+  const space = child.querySelector('.space')
+  const spaceWidth = space.scrollWidth
+  
+  space.parentNode.removeChild(space)
+  
+  return {
+    spaceWidth: spaceWidth,
+    wordWidths: map(node => node.scrollWidth, Array.from(child.children))
+  }
+}
+
+const calculateWidth = (line, spaceWidth) => add(sum(line), multiply(spaceWidth, inc(length(line))))
+
 class SplitArticle {
   constructor (rawConfig) {
     this.config = merge({ width: 50 }, rawConfig)
@@ -62,45 +106,50 @@ class SplitArticle {
 
       console.log(distributeText(textSize, containerSizes)) // [3, 3, 2, 2]
       */
-
+      
       this.children = Array.from(this.config.source.children)
       this.config.source.style = 'height:0;position:absolute;overflow:hidden'
-
-      this.resizeSource()
-
-      const elements = this.children[0].innerHTML.match(/(?:<[^>]+>|\S+)/g)
-      const tags = []
-      const words = []
-
-      elements.forEach(element => {
-        if (element.match(/^<\//) !== null) {
-          tags.pop()
-        } else if (element.match(/^</) !== null) {
-          tags.push(element)
-        } else {
-          words.push([
-            clone(tags),
-            element,
-            clone(tags.reverse().map(tag => '</' + tag.replace(/^<(\w+).+$/, '$1') + '>'))
-          ])
-        }
-      })
-
-      // console.log(words);
-
+      
+      this.measuredWidth = getMeasuredWidth(this.config.source, this.config.width)
+      this.config.source.style.width = this.measuredWidth + 'px'
+      
+      const paragraphs = map(splitToWords, this.children)
+      
+      // ------------
+      
+      const {spaceWidth, wordWidths} = getWordWidths(this.children[0], paragraphs[0])
+      const containerWidth = this.measuredWidth
+      
+      const lines = reduce((lines, ww) => {
+        lines = when(
+          either(
+            isEmpty,
+            () => calculateWidth(last(lines), spaceWidth) + ww >= containerWidth
+          ),
+          append([])
+        )(lines)
+        
+        return converge(
+          adjust(append(ww)),
+          [
+            compose(dec, length),
+            identity()
+          ]
+        )(lines)
+      }, [], wordWidths)
+      
+      console.log(lines)
+      
+      // ------------
+      
       // console.log(map(prop('scrollHeight'))(this.children))
-
+      
       /*
       window.addEventListener('resize', () => {
-
+        
       })
       */
     })
-  }
-
-  resizeSource () {
-    this.measuredWidth = getMeasuredWidth(this.config.source, this.config.width)
-    this.config.source.style.width = this.measuredWidth + 'px'
   }
 }
 

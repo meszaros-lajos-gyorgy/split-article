@@ -95,6 +95,23 @@ const getWordWidths = (child, paragraph) => {
 
 const calculateWidth = (line, spaceWidth) => add(sum(line), multiply(spaceWidth, inc(length(line))))
 
+const sortIntoLines = (containerWidth, spaceWidth) => (lines, wordWidth) => compose(
+  converge(
+    adjust(append(wordWidth)),
+    [
+      compose(dec, length),
+      identity()
+    ]
+  ),
+  when(
+    either(
+      isEmpty,
+      () => calculateWidth(last(lines), spaceWidth) + wordWidth >= containerWidth
+    ),
+    append([])
+  )
+)(lines)
+
 class SplitArticle {
   constructor (rawConfig) {
     this.config = merge({ width: 50 }, rawConfig)
@@ -119,25 +136,9 @@ class SplitArticle {
 
       const {spaceWidth, wordWidths} = getWordWidths(this.children[0], paragraphs[0])
       const containerWidth = this.measuredWidth
-
-      const lines = reduce((lines, ww) => {
-        lines = when(
-          either(
-            isEmpty,
-            () => calculateWidth(last(lines), spaceWidth) + ww >= containerWidth
-          ),
-          append([])
-        )(lines)
-
-        return converge(
-          adjust(append(ww)),
-          [
-            compose(dec, length),
-            identity()
-          ]
-        )(lines)
-      }, [], wordWidths)
-
+      
+      const lines = reduce(sortIntoLines(containerWidth, spaceWidth), [], wordWidths)
+      
       console.log(lines)
 
       // ------------

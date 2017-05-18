@@ -1,4 +1,4 @@
-// split-article - created by Lajos Mészáros <m_lajos@hotmail.com> - MIT Licence - 2017-05-17
+// split-article - created by Lajos Meszaros <m_lajos@hotmail.com> - MIT licence - last built on 2017-05-18
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define(factory) :
@@ -2277,6 +2277,23 @@ var getWordWidths = function (child, paragraph) {
 
 var calculateWidth = function (line, spaceWidth) { return add(sum(line), multiply(spaceWidth, inc(length(line)))); };
 
+var sortIntoLines = function (containerWidth, spaceWidth) { return function (lines, wordWidth) { return compose(
+  converge(
+    adjust(append(wordWidth)),
+    [
+      compose(dec, length),
+      identity()
+    ]
+  ),
+  when(
+    either(
+      isEmpty,
+      function () { return calculateWidth(last(lines), spaceWidth) + wordWidth >= containerWidth; }
+    ),
+    append([])
+  )
+)(lines); }; };
+
 var SplitArticle = function SplitArticle (rawConfig) {
   var this$1 = this;
 
@@ -2305,23 +2322,7 @@ var SplitArticle = function SplitArticle (rawConfig) {
     var wordWidths = ref.wordWidths;
     var containerWidth = this$1.measuredWidth;
 
-    var lines = reduce(function (lines, ww) {
-      lines = when(
-        either(
-          isEmpty,
-          function () { return calculateWidth(last(lines), spaceWidth) + ww >= containerWidth; }
-        ),
-        append([])
-      )(lines);
-
-      return converge(
-        adjust(append(ww)),
-        [
-          compose(dec, length),
-          identity()
-        ]
-      )(lines)
-    }, [], wordWidths);
+    var lines = reduce(sortIntoLines(containerWidth, spaceWidth), [], wordWidths);
 
     console.log(lines);
 

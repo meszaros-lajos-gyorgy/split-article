@@ -3,11 +3,19 @@ import buble from 'rollup-plugin-buble'
 import resolve from 'rollup-plugin-node-resolve'
 import commonjs from 'rollup-plugin-commonjs'
 import ramda from 'rollup-plugin-ramda'
+import fs from 'fs'
 
-const d = new Date()
+const getDate = () => {
+  const d = new Date()
+  const year = d.getFullYear()
+  const month = (d.getMonth() + 1 < 10 ? '0' : '') + (d.getMonth() + 1)
+  const day = (d.getDate() < 10 ? '0' : '') + d.getDate()
+  return `${year}-${month}-${day}`
+}
 
-const banner = '// split-article - created by Lajos Mészáros <m_lajos@hotmail.com> - MIT Licence - '
-  + d.getFullYear() + '-' + (d.getMonth() + 1 < 10 ? '0' : '') + (d.getMonth() + 1) + '-' + (d.getDate() < 10 ? '0' : '') + d.getDate()
+const config = JSON.parse(fs.readFileSync('package.json'))
+
+const banner = `// ${config.name} - created by ${config.author} - ${config.license} licence - last built on ${getDate()}`
 
 export default [{
   banner: banner,

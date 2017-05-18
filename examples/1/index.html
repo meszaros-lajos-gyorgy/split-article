@@ -91,7 +91,7 @@
   <script>
 var splitArticle = new SplitArticle({
   source: document.getElementById('source'),
-  target: document.getElementById('target')
+  targets: Array.from(document.getElementById('target').querySelectorAll('.container'))
 })
   </script>
 </body>

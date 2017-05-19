@@ -5,37 +5,29 @@
 	(global.splitArticle = factory());
 }(this, (function () { 'use strict';
 
-var _has = function _has(prop, obj) {
-  return Object.prototype.hasOwnProperty.call(obj, prop);
+var _arity = function _arity(n, fn) {
+  /* eslint-disable no-unused-vars */
+  switch (n) {
+    case 0: return function() { return fn.apply(this, arguments); };
+    case 1: return function(a0) { return fn.apply(this, arguments); };
+    case 2: return function(a0, a1) { return fn.apply(this, arguments); };
+    case 3: return function(a0, a1, a2) { return fn.apply(this, arguments); };
+    case 4: return function(a0, a1, a2, a3) { return fn.apply(this, arguments); };
+    case 5: return function(a0, a1, a2, a3, a4) { return fn.apply(this, arguments); };
+    case 6: return function(a0, a1, a2, a3, a4, a5) { return fn.apply(this, arguments); };
+    case 7: return function(a0, a1, a2, a3, a4, a5, a6) { return fn.apply(this, arguments); };
+    case 8: return function(a0, a1, a2, a3, a4, a5, a6, a7) { return fn.apply(this, arguments); };
+    case 9: return function(a0, a1, a2, a3, a4, a5, a6, a7, a8) { return fn.apply(this, arguments); };
+    case 10: return function(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9) { return fn.apply(this, arguments); };
+    default: throw new Error('First argument to _arity must be a non-negative integer no greater than ten');
+  }
 };
 
-// Based on https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/Object/assign
-var _objectAssign = function _objectAssign(target) {
-  var arguments$1 = arguments;
-
-  if (target == null) {
-    throw new TypeError('Cannot convert undefined or null to object');
-  }
-
-  var output = Object(target);
-  var idx = 1;
-  var length = arguments.length;
-  while (idx < length) {
-    var source = arguments$1[idx];
-    if (source != null) {
-      for (var nextKey in source) {
-        if (_has(nextKey, source)) {
-          output[nextKey] = source[nextKey];
-        }
-      }
-    }
-    idx += 1;
-  }
-  return output;
+var _pipe = function _pipe(f, g) {
+  return function() {
+    return g.call(this, f.apply(this, arguments));
+  };
 };
-
-var _assign =
-  typeof Object.assign === 'function' ? Object.assign : _objectAssign;
 
 var _isPlaceholder = function _isPlaceholder(a) {
   return a != null &&
@@ -83,57 +75,6 @@ var _curry2 = function _curry2(fn) {
              : _isPlaceholder(b) ? _curry1(function(_b) { return fn(a, _b); })
              : fn(a, b);
     }
-  };
-};
-
-/**
- * Create a new object with the own properties of the first object merged with
- * the own properties of the second object. If a key exists in both objects,
- * the value from the second object will be used.
- *
- * @func
- * @memberOf R
- * @since v0.1.0
- * @category Object
- * @sig {k: v} -> {k: v} -> {k: v}
- * @param {Object} l
- * @param {Object} r
- * @return {Object}
- * @see R.mergeWith, R.mergeWithKey
- * @example
- *
- *      R.merge({ 'name': 'fred', 'age': 10 }, { 'age': 40 });
- *      //=> { 'name': 'fred', 'age': 40 }
- *
- *      var resetToDefault = R.merge(R.__, {x: 0});
- *      resetToDefault({x: 5, y: 2}); //=> {x: 0, y: 2}
- * @symb R.merge({ x: 1, y: 2 }, { y: 5, z: 3 }) = { x: 1, y: 5, z: 3 }
- */
-var merge = _curry2(function merge(l, r) {
-  return _assign({}, l, r);
-});
-
-var _arity = function _arity(n, fn) {
-  /* eslint-disable no-unused-vars */
-  switch (n) {
-    case 0: return function() { return fn.apply(this, arguments); };
-    case 1: return function(a0) { return fn.apply(this, arguments); };
-    case 2: return function(a0, a1) { return fn.apply(this, arguments); };
-    case 3: return function(a0, a1, a2) { return fn.apply(this, arguments); };
-    case 4: return function(a0, a1, a2, a3) { return fn.apply(this, arguments); };
-    case 5: return function(a0, a1, a2, a3, a4) { return fn.apply(this, arguments); };
-    case 6: return function(a0, a1, a2, a3, a4, a5) { return fn.apply(this, arguments); };
-    case 7: return function(a0, a1, a2, a3, a4, a5, a6) { return fn.apply(this, arguments); };
-    case 8: return function(a0, a1, a2, a3, a4, a5, a6, a7) { return fn.apply(this, arguments); };
-    case 9: return function(a0, a1, a2, a3, a4, a5, a6, a7, a8) { return fn.apply(this, arguments); };
-    case 10: return function(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9) { return fn.apply(this, arguments); };
-    default: throw new Error('First argument to _arity must be a non-negative integer no greater than ten');
-  }
-};
-
-var _pipe = function _pipe(f, g) {
-  return function() {
-    return g.call(this, f.apply(this, arguments));
   };
 };
 
@@ -538,6 +479,98 @@ var compose = function compose() {
   return pipe.apply(this, reverse(arguments));
 };
 
+var _isFunction = function _isFunction(x) {
+  return Object.prototype.toString.call(x) === '[object Function]';
+};
+
+/**
+ * Internal curryN function.
+ *
+ * @private
+ * @category Function
+ * @param {Number} length The arity of the curried function.
+ * @param {Array} received An array of arguments received thus far.
+ * @param {Function} fn The function to curry.
+ * @return {Function} The curried function.
+ */
+var _curryN = function _curryN(length, received, fn) {
+  return function() {
+    var arguments$1 = arguments;
+
+    var combined = [];
+    var argsIdx = 0;
+    var left = length;
+    var combinedIdx = 0;
+    while (combinedIdx < received.length || argsIdx < arguments.length) {
+      var result;
+      if (combinedIdx < received.length &&
+          (!_isPlaceholder(received[combinedIdx]) ||
+           argsIdx >= arguments$1.length)) {
+        result = received[combinedIdx];
+      } else {
+        result = arguments$1[argsIdx];
+        argsIdx += 1;
+      }
+      combined[combinedIdx] = result;
+      if (!_isPlaceholder(result)) {
+        left -= 1;
+      }
+      combinedIdx += 1;
+    }
+    return left <= 0 ? fn.apply(this, combined)
+                     : _arity(left, _curryN(length, combined, fn));
+  };
+};
+
+/**
+ * Returns a curried equivalent of the provided function, with the specified
+ * arity. The curried function has two unusual capabilities. First, its
+ * arguments needn't be provided one at a time. If `g` is `R.curryN(3, f)`, the
+ * following are equivalent:
+ *
+ *   - `g(1)(2)(3)`
+ *   - `g(1)(2, 3)`
+ *   - `g(1, 2)(3)`
+ *   - `g(1, 2, 3)`
+ *
+ * Secondly, the special placeholder value `R.__` may be used to specify
+ * "gaps", allowing partial application of any combination of arguments,
+ * regardless of their positions. If `g` is as above and `_` is `R.__`, the
+ * following are equivalent:
+ *
+ *   - `g(1, 2, 3)`
+ *   - `g(_, 2, 3)(1)`
+ *   - `g(_, _, 3)(1)(2)`
+ *   - `g(_, _, 3)(1, 2)`
+ *   - `g(_, 2)(1)(3)`
+ *   - `g(_, 2)(1, 3)`
+ *   - `g(_, 2)(_, 3)(1)`
+ *
+ * @func
+ * @memberOf R
+ * @since v0.5.0
+ * @category Function
+ * @sig Number -> (* -> a) -> (* -> a)
+ * @param {Number} length The arity for the returned function.
+ * @param {Function} fn The function to curry.
+ * @return {Function} A new, curried function.
+ * @see R.curry
+ * @example
+ *
+ *      var sumArgs = (...args) => R.sum(args);
+ *
+ *      var curriedAddFourNumbers = R.curryN(4, sumArgs);
+ *      var f = curriedAddFourNumbers(1, 2);
+ *      var g = f(3);
+ *      g(4); //=> 10
+ */
+var curryN = _curry2(function curryN(length, fn) {
+  if (length === 1) {
+    return _curry1(fn);
+  }
+  return _arity(length, _curryN(length, [], fn));
+});
+
 var _arrayFromIterator = function _arrayFromIterator(iter) {
   var list = [];
   var next;
@@ -551,6 +584,10 @@ var _functionName = function _functionName(f) {
   // String(x => x) evaluates to "x => x", so the pattern may not match.
   var match = String(f).match(/^function (\w*)/);
   return match == null ? '' : match[1];
+};
+
+var _has = function _has(prop, obj) {
+  return Object.prototype.hasOwnProperty.call(obj, prop);
 };
 
 /**
@@ -882,6 +919,487 @@ var _contains = function _contains(a, list) {
   return _indexOf(list, a, 0) >= 0;
 };
 
+var _map = function _map(fn, functor) {
+  var idx = 0;
+  var len = functor.length;
+  var result = Array(len);
+  while (idx < len) {
+    result[idx] = fn(functor[idx]);
+    idx += 1;
+  }
+  return result;
+};
+
+var _quote = function _quote(s) {
+  var escaped = s
+    .replace(/\\/g, '\\\\')
+    .replace(/[\b]/g, '\\b')  // \b matches word boundary; [\b] matches backspace
+    .replace(/\f/g, '\\f')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r')
+    .replace(/\t/g, '\\t')
+    .replace(/\v/g, '\\v')
+    .replace(/\0/g, '\\0');
+
+  return '"' + escaped.replace(/"/g, '\\"') + '"';
+};
+
+/**
+ * Polyfill from <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toISOString>.
+ */
+var _toISOString = (function() {
+  var pad = function pad(n) { return (n < 10 ? '0' : '') + n; };
+
+  return typeof Date.prototype.toISOString === 'function' ?
+    function _toISOString(d) {
+      return d.toISOString();
+    } :
+    function _toISOString(d) {
+      return (
+        d.getUTCFullYear() + '-' +
+        pad(d.getUTCMonth() + 1) + '-' +
+        pad(d.getUTCDate()) + 'T' +
+        pad(d.getUTCHours()) + ':' +
+        pad(d.getUTCMinutes()) + ':' +
+        pad(d.getUTCSeconds()) + '.' +
+        (d.getUTCMilliseconds() / 1000).toFixed(3).slice(2, 5) + 'Z'
+      );
+    };
+}());
+
+var _complement = function _complement(f) {
+  return function() {
+    return !f.apply(this, arguments);
+  };
+};
+
+var _isTransformer = function _isTransformer(obj) {
+  return typeof obj['@@transducer/step'] === 'function';
+};
+
+/**
+ * Returns a function that dispatches with different strategies based on the
+ * object in list position (last argument). If it is an array, executes [fn].
+ * Otherwise, if it has a function with one of the given method names, it will
+ * execute that function (functor case). Otherwise, if it is a transformer,
+ * uses transducer [xf] to return a new transformer (transducer case).
+ * Otherwise, it will default to executing [fn].
+ *
+ * @private
+ * @param {Array} methodNames properties to check for a custom implementation
+ * @param {Function} xf transducer to initialize if object is transformer
+ * @param {Function} fn default ramda implementation
+ * @return {Function} A function that dispatches on object in list position
+ */
+var _dispatchable = function _dispatchable(methodNames, xf, fn) {
+  return function() {
+    if (arguments.length === 0) {
+      return fn();
+    }
+    var args = Array.prototype.slice.call(arguments, 0);
+    var obj = args.pop();
+    if (!_isArray(obj)) {
+      var idx = 0;
+      while (idx < methodNames.length) {
+        if (typeof obj[methodNames[idx]] === 'function') {
+          return obj[methodNames[idx]].apply(obj, args);
+        }
+        idx += 1;
+      }
+      if (_isTransformer(obj)) {
+        var transducer = xf.apply(null, args);
+        return transducer(obj);
+      }
+    }
+    return fn.apply(this, arguments);
+  };
+};
+
+var _filter = function _filter(fn, list) {
+  var idx = 0;
+  var len = list.length;
+  var result = [];
+
+  while (idx < len) {
+    if (fn(list[idx])) {
+      result[result.length] = list[idx];
+    }
+    idx += 1;
+  }
+  return result;
+};
+
+var _isObject = function _isObject(x) {
+  return Object.prototype.toString.call(x) === '[object Object]';
+};
+
+var _xfBase = {
+  init: function() {
+    return this.xf['@@transducer/init']();
+  },
+  result: function(result) {
+    return this.xf['@@transducer/result'](result);
+  }
+};
+
+var _xfilter = (function() {
+  function XFilter(f, xf) {
+    this.xf = xf;
+    this.f = f;
+  }
+  XFilter.prototype['@@transducer/init'] = _xfBase.init;
+  XFilter.prototype['@@transducer/result'] = _xfBase.result;
+  XFilter.prototype['@@transducer/step'] = function(result, input) {
+    return this.f(input) ? this.xf['@@transducer/step'](result, input) : result;
+  };
+
+  return _curry2(function _xfilter(f, xf) { return new XFilter(f, xf); });
+}());
+
+/**
+ * Takes a predicate and a "filterable", and returns a new filterable of the
+ * same type containing the members of the given filterable which satisfy the
+ * given predicate.
+ *
+ * Dispatches to the `filter` method of the second argument, if present.
+ *
+ * Acts as a transducer if a transformer is given in list position.
+ *
+ * @func
+ * @memberOf R
+ * @since v0.1.0
+ * @category List
+ * @sig Filterable f => (a -> Boolean) -> f a -> f a
+ * @param {Function} pred
+ * @param {Array} filterable
+ * @return {Array}
+ * @see R.reject, R.transduce, R.addIndex
+ * @example
+ *
+ *      var isEven = n => n % 2 === 0;
+ *
+ *      R.filter(isEven, [1, 2, 3, 4]); //=> [2, 4]
+ *
+ *      R.filter(isEven, {a: 1, b: 2, c: 3, d: 4}); //=> {b: 2, d: 4}
+ */
+var filter = _curry2(_dispatchable(['filter'], _xfilter, function(pred, filterable) {
+  return (
+    _isObject(filterable) ?
+      _reduce(function(acc, key) {
+        if (pred(filterable[key])) {
+          acc[key] = filterable[key];
+        }
+        return acc;
+      }, {}, keys(filterable)) :
+    // else
+      _filter(pred, filterable)
+  );
+}));
+
+/**
+ * The complement of `filter`.
+ *
+ * Acts as a transducer if a transformer is given in list position.
+ *
+ * @func
+ * @memberOf R
+ * @since v0.1.0
+ * @category List
+ * @sig Filterable f => (a -> Boolean) -> f a -> f a
+ * @param {Function} pred
+ * @param {Array} filterable
+ * @return {Array}
+ * @see R.filter, R.transduce, R.addIndex
+ * @example
+ *
+ *      var isOdd = (n) => n % 2 === 1;
+ *
+ *      R.reject(isOdd, [1, 2, 3, 4]); //=> [2, 4]
+ *
+ *      R.reject(isOdd, {a: 1, b: 2, c: 3, d: 4}); //=> {b: 2, d: 4}
+ */
+var reject = _curry2(function reject(pred, filterable) {
+  return filter(_complement(pred), filterable);
+});
+
+var _toString = function _toString(x, seen) {
+  var recur = function recur(y) {
+    var xs = seen.concat([x]);
+    return _contains(y, xs) ? '<Circular>' : _toString(y, xs);
+  };
+
+  //  mapPairs :: (Object, [String]) -> [String]
+  var mapPairs = function(obj, keys$$1) {
+    return _map(function(k) { return _quote(k) + ': ' + recur(obj[k]); }, keys$$1.slice().sort());
+  };
+
+  switch (Object.prototype.toString.call(x)) {
+    case '[object Arguments]':
+      return '(function() { return arguments; }(' + _map(recur, x).join(', ') + '))';
+    case '[object Array]':
+      return '[' + _map(recur, x).concat(mapPairs(x, reject(function(k) { return /^\d+$/.test(k); }, keys(x)))).join(', ') + ']';
+    case '[object Boolean]':
+      return typeof x === 'object' ? 'new Boolean(' + recur(x.valueOf()) + ')' : x.toString();
+    case '[object Date]':
+      return 'new Date(' + (isNaN(x.valueOf()) ? recur(NaN) : _quote(_toISOString(x))) + ')';
+    case '[object Null]':
+      return 'null';
+    case '[object Number]':
+      return typeof x === 'object' ? 'new Number(' + recur(x.valueOf()) + ')' : 1 / x === -Infinity ? '-0' : x.toString(10);
+    case '[object String]':
+      return typeof x === 'object' ? 'new String(' + recur(x.valueOf()) + ')' : _quote(x);
+    case '[object Undefined]':
+      return 'undefined';
+    default:
+      if (typeof x.toString === 'function') {
+        var repr = x.toString();
+        if (repr !== '[object Object]') {
+          return repr;
+        }
+      }
+      return '{' + mapPairs(x, keys(x)).join(', ') + '}';
+  }
+};
+
+/**
+ * Returns the string representation of the given value. `eval`'ing the output
+ * should result in a value equivalent to the input value. Many of the built-in
+ * `toString` methods do not satisfy this requirement.
+ *
+ * If the given value is an `[object Object]` with a `toString` method other
+ * than `Object.prototype.toString`, this method is invoked with no arguments
+ * to produce the return value. This means user-defined constructor functions
+ * can provide a suitable `toString` method. For example:
+ *
+ *     function Point(x, y) {
+ *       this.x = x;
+ *       this.y = y;
+ *     }
+ *
+ *     Point.prototype.toString = function() {
+ *       return 'new Point(' + this.x + ', ' + this.y + ')';
+ *     };
+ *
+ *     R.toString(new Point(1, 2)); //=> 'new Point(1, 2)'
+ *
+ * @func
+ * @memberOf R
+ * @since v0.14.0
+ * @category String
+ * @sig * -> String
+ * @param {*} val
+ * @return {String}
+ * @example
+ *
+ *      R.toString(42); //=> '42'
+ *      R.toString('abc'); //=> '"abc"'
+ *      R.toString([1, 2, 3]); //=> '[1, 2, 3]'
+ *      R.toString({foo: 1, bar: 2, baz: 3}); //=> '{"bar": 2, "baz": 3, "foo": 1}'
+ *      R.toString(new Date('2001-02-03T04:05:06Z')); //=> 'new Date("2001-02-03T04:05:06.000Z")'
+ */
+var toString_1 = _curry1(function toString(val) { return _toString(val, []); });
+
+/**
+ * Turns a named method with a specified arity into a function that can be
+ * called directly supplied with arguments and a target object.
+ *
+ * The returned function is curried and accepts `arity + 1` parameters where
+ * the final parameter is the target object.
+ *
+ * @func
+ * @memberOf R
+ * @since v0.1.0
+ * @category Function
+ * @sig Number -> String -> (a -> b -> ... -> n -> Object -> *)
+ * @param {Number} arity Number of arguments the returned function should take
+ *        before the target object.
+ * @param {String} method Name of the method to call.
+ * @return {Function} A new curried function.
+ * @example
+ *
+ *      var sliceFrom = R.invoker(1, 'slice');
+ *      sliceFrom(6, 'abcdefghijklm'); //=> 'ghijklm'
+ *      var sliceFrom6 = R.invoker(2, 'slice')(6);
+ *      sliceFrom6(8, 'abcdefghijklm'); //=> 'gh'
+ * @symb R.invoker(0, 'method')(o) = o['method']()
+ * @symb R.invoker(1, 'method')(a, o) = o['method'](a)
+ * @symb R.invoker(2, 'method')(a, b, o) = o['method'](a, b)
+ */
+var invoker = _curry2(function invoker(arity, method) {
+  return curryN(arity + 1, function() {
+    var target = arguments[arity];
+    if (target != null && _isFunction(target[method])) {
+      return target[method].apply(target, Array.prototype.slice.call(arguments, 0, arity));
+    }
+    throw new TypeError(toString_1(target) + ' does not have a method named "' + method + '"');
+  });
+});
+
+/**
+ * Returns a string made by inserting the `separator` between each element and
+ * concatenating all the elements into a single string.
+ *
+ * @func
+ * @memberOf R
+ * @since v0.1.0
+ * @category List
+ * @sig String -> [a] -> String
+ * @param {Number|String} separator The string used to separate the elements.
+ * @param {Array} xs The elements to join into a string.
+ * @return {String} str The string made by concatenating `xs` with `separator`.
+ * @see R.split
+ * @example
+ *
+ *      var spacer = R.join(' ');
+ *      spacer(['a', 2, 3.4]);   //=> 'a 2 3.4'
+ *      R.join('|', [1, 2, 3]);    //=> '1|2|3'
+ */
+var join = invoker(1, 'join');
+
+/**
+ * Returns a function that always returns the given value. Note that for
+ * non-primitives the value returned is a reference to the original value.
+ *
+ * This function is known as `const`, `constant`, or `K` (for K combinator) in
+ * other languages and libraries.
+ *
+ * @func
+ * @memberOf R
+ * @since v0.1.0
+ * @category Function
+ * @sig a -> (* -> a)
+ * @param {*} val The value to wrap in a function
+ * @return {Function} A Function :: * -> val.
+ * @example
+ *
+ *      var t = R.always('Tee');
+ *      t(); //=> 'Tee'
+ */
+var always = _curry1(function always(val) {
+  return function() {
+    return val;
+  };
+});
+
+/**
+ * Calls an input function `n` times, returning an array containing the results
+ * of those function calls.
+ *
+ * `fn` is passed one argument: The current value of `n`, which begins at `0`
+ * and is gradually incremented to `n - 1`.
+ *
+ * @func
+ * @memberOf R
+ * @since v0.2.3
+ * @category List
+ * @sig (Number -> a) -> Number -> [a]
+ * @param {Function} fn The function to invoke. Passed one argument, the current value of `n`.
+ * @param {Number} n A value between `0` and `n - 1`. Increments after each function call.
+ * @return {Array} An array containing the return values of all calls to `fn`.
+ * @example
+ *
+ *      R.times(R.identity, 5); //=> [0, 1, 2, 3, 4]
+ * @symb R.times(f, 0) = []
+ * @symb R.times(f, 1) = [f(0)]
+ * @symb R.times(f, 2) = [f(0), f(1)]
+ */
+var times = _curry2(function times(fn, n) {
+  var len = Number(n);
+  var idx = 0;
+  var list;
+
+  if (len < 0 || isNaN(len)) {
+    throw new RangeError('n must be a non-negative number');
+  }
+  list = new Array(len);
+  while (idx < len) {
+    list[idx] = fn(idx);
+    idx += 1;
+  }
+  return list;
+});
+
+/**
+ * Returns a fixed list of size `n` containing a specified identical value.
+ *
+ * @func
+ * @memberOf R
+ * @since v0.1.1
+ * @category List
+ * @sig a -> n -> [a]
+ * @param {*} value The value to repeat.
+ * @param {Number} n The desired size of the output list.
+ * @return {Array} A new array containing `n` `value`s.
+ * @example
+ *
+ *      R.repeat('hi', 5); //=> ['hi', 'hi', 'hi', 'hi', 'hi']
+ *
+ *      var obj = {};
+ *      var repeatedObjs = R.repeat(obj, 5); //=> [{}, {}, {}, {}, {}]
+ *      repeatedObjs[0] === repeatedObjs[1]; //=> true
+ * @symb R.repeat(a, 0) = []
+ * @symb R.repeat(a, 1) = [a]
+ * @symb R.repeat(a, 2) = [a, a]
+ */
+var repeat = _curry2(function repeat(value, n) {
+  return times(always(value), n);
+});
+
+// Based on https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/Object/assign
+var _objectAssign = function _objectAssign(target) {
+  var arguments$1 = arguments;
+
+  if (target == null) {
+    throw new TypeError('Cannot convert undefined or null to object');
+  }
+
+  var output = Object(target);
+  var idx = 1;
+  var length = arguments.length;
+  while (idx < length) {
+    var source = arguments$1[idx];
+    if (source != null) {
+      for (var nextKey in source) {
+        if (_has(nextKey, source)) {
+          output[nextKey] = source[nextKey];
+        }
+      }
+    }
+    idx += 1;
+  }
+  return output;
+};
+
+var _assign =
+  typeof Object.assign === 'function' ? Object.assign : _objectAssign;
+
+/**
+ * Create a new object with the own properties of the first object merged with
+ * the own properties of the second object. If a key exists in both objects,
+ * the value from the second object will be used.
+ *
+ * @func
+ * @memberOf R
+ * @since v0.1.0
+ * @category Object
+ * @sig {k: v} -> {k: v} -> {k: v}
+ * @param {Object} l
+ * @param {Object} r
+ * @return {Object}
+ * @see R.mergeWith, R.mergeWithKey
+ * @example
+ *
+ *      R.merge({ 'name': 'fred', 'age': 10 }, { 'age': 40 });
+ *      //=> { 'name': 'fred', 'age': 40 }
+ *
+ *      var resetToDefault = R.merge(R.__, {x: 0});
+ *      resetToDefault({x: 5, y: 2}); //=> {x: 0, y: 2}
+ * @symb R.merge({ x: 1, y: 2 }, { y: 5, z: 3 }) = { x: 1, y: 5, z: 3 }
+ */
+var merge = _curry2(function merge(l, r) {
+  return _assign({}, l, r);
+});
+
 /**
  * Returns `true` if the specified value is equal, in `R.equals` terms, to at
  * least one element of the given list; `false` otherwise.
@@ -903,94 +1421,6 @@ var _contains = function _contains(a, list) {
  *      R.contains([42], [[42]]); //=> true
  */
 var contains = _curry2(_contains);
-
-/**
- * Internal curryN function.
- *
- * @private
- * @category Function
- * @param {Number} length The arity of the curried function.
- * @param {Array} received An array of arguments received thus far.
- * @param {Function} fn The function to curry.
- * @return {Function} The curried function.
- */
-var _curryN = function _curryN(length, received, fn) {
-  return function() {
-    var arguments$1 = arguments;
-
-    var combined = [];
-    var argsIdx = 0;
-    var left = length;
-    var combinedIdx = 0;
-    while (combinedIdx < received.length || argsIdx < arguments.length) {
-      var result;
-      if (combinedIdx < received.length &&
-          (!_isPlaceholder(received[combinedIdx]) ||
-           argsIdx >= arguments$1.length)) {
-        result = received[combinedIdx];
-      } else {
-        result = arguments$1[argsIdx];
-        argsIdx += 1;
-      }
-      combined[combinedIdx] = result;
-      if (!_isPlaceholder(result)) {
-        left -= 1;
-      }
-      combinedIdx += 1;
-    }
-    return left <= 0 ? fn.apply(this, combined)
-                     : _arity(left, _curryN(length, combined, fn));
-  };
-};
-
-/**
- * Returns a curried equivalent of the provided function, with the specified
- * arity. The curried function has two unusual capabilities. First, its
- * arguments needn't be provided one at a time. If `g` is `R.curryN(3, f)`, the
- * following are equivalent:
- *
- *   - `g(1)(2)(3)`
- *   - `g(1)(2, 3)`
- *   - `g(1, 2)(3)`
- *   - `g(1, 2, 3)`
- *
- * Secondly, the special placeholder value `R.__` may be used to specify
- * "gaps", allowing partial application of any combination of arguments,
- * regardless of their positions. If `g` is as above and `_` is `R.__`, the
- * following are equivalent:
- *
- *   - `g(1, 2, 3)`
- *   - `g(_, 2, 3)(1)`
- *   - `g(_, _, 3)(1)(2)`
- *   - `g(_, _, 3)(1, 2)`
- *   - `g(_, 2)(1)(3)`
- *   - `g(_, 2)(1, 3)`
- *   - `g(_, 2)(_, 3)(1)`
- *
- * @func
- * @memberOf R
- * @since v0.5.0
- * @category Function
- * @sig Number -> (* -> a) -> (* -> a)
- * @param {Number} length The arity for the returned function.
- * @param {Function} fn The function to curry.
- * @return {Function} A new, curried function.
- * @see R.curry
- * @example
- *
- *      var sumArgs = (...args) => R.sum(args);
- *
- *      var curriedAddFourNumbers = R.curryN(4, sumArgs);
- *      var f = curriedAddFourNumbers(1, 2);
- *      var g = f(3);
- *      g(4); //=> 10
- */
-var curryN = _curry2(function curryN(length, fn) {
-  if (length === 1) {
-    return _curry1(fn);
-  }
-  return _arity(length, _curryN(length, [], fn));
-});
 
 /**
  * Returns a curried equivalent of the provided function. The curried function
@@ -1145,28 +1575,6 @@ var getBorderBottom = compose(parseFloat, getComputedProperty('border-bottom-wid
 var getMarginTop = compose(parseFloat, getComputedProperty('margin-top'));
 var getMarginBottom = compose(parseFloat, getComputedProperty('margin-bottom'));
 
-// todo: can we move element out to the end?
-var isOutpositioned = function (element) { return contains(getComputedProperty('position', element), ['absolute', 'fixed']); };
-var isFloating = function (element) { return not(equals('none', getComputedProperty('float', element))); };
-
-var getContentHeight = function (element) {
-  var removeThisToo = 0;
-
-  if (isOutpositioned(element) || isFloating(element)) {
-    removeThisToo += getMarginTop(head(element.children));
-    removeThisToo += getMarginBottom(last(element.children));
-  } else {
-    if (getBorderTop(element)) {
-      removeThisToo += getMarginTop(head(element.children));
-    }
-    if (getBorderBottom(element)) {
-      removeThisToo += getMarginBottom(last(element.children));
-    }
-  }
-
-  return element.scrollHeight - getPaddingTop(element) - getPaddingBottom(element) - removeThisToo
-};
-
 // http://stackoverflow.com/a/27078401/1806628
 function throttle(func, wait, options) {
   if ( options === void 0 ) options = {};
@@ -1215,21 +1623,25 @@ function throttle(func, wait, options) {
   }
 }
 
+var onResize = function (fn) {
+  var previousPageHeight = document.body.scrollHeight;
+
+  window.addEventListener('resize', throttle(function () {
+    if (document.body.scrollHeight !== previousPageHeight) {
+      previousPageHeight = document.body.scrollHeight;
+      fn();
+    }
+  }, 200, {
+    trailing: true,
+    leading: false
+  }));
+};
+
+var DEFAULT_CONFIG = {
+  width: 50
+};
+
 /*
-const getMeasuredWidth = (source, width) => {
-  const measure = document.createElement('div')
-  measure.textContent = generateMeasureText(width)
-  measure.style = 'position:absolute;visibility:hidden'
-
-  let result
-
-  source.appendChild(measure)
-  result = measure.scrollWidth
-  source.removeChild(measure)
-
-  return result
-}
-
 const splitToWords = curry(child => {
   const elements = child.innerHTML.match(/(?:<[^>]+>|[^\r\n\t <]+)/g)
   const tags = []
@@ -1250,25 +1662,32 @@ const splitToWords = curry(child => {
     return words
   }, [], elements)
 })
+*/
 
-const renderWord = ([openingTags, content, closingTags]) => join('', openingTags) + content + join('', closingTags)
+// const renderWord = ([openingTags, content, closingTags]) => join('', openingTags) + content + join('', closingTags)
 
+/*
 const getWordWidths = curry((child, paragraph) => {
+  // todo: rendering should go to a separate function
   child.innerHTML = join(' ', map(renderWord, paragraph)) + '<span class="space">&nbsp;</span>'
 
   const space = child.querySelector('.space')
   const spaceWidth = space.scrollWidth
+  const spaceHeight = space.scrollHeight
 
   space.parentNode.removeChild(space)
 
   return {
+    spaceHeight: spaceHeight,
     spaceWidth: spaceWidth,
-    wordWidths: map(node => node.scrollWidth, Array.from(child.children))
+    wordWidths: addIndex(map)((node, index) => [index, node.scrollWidth], Array.from(child.children))
   }
 })
+*/
 
-const calculateWidth = (line, spaceWidth) => add(sum(line), multiply(spaceWidth, inc(length(line))))
+// const calculateWidth = (line, spaceWidth) => add(sum(line), multiply(spaceWidth, inc(length(line))))
 
+/*
 const sortIntoLines = (containerWidth, spaceWidth) => (lines, wordWidth) => compose(
   converge(
     adjust(append(wordWidth)),
@@ -1285,95 +1704,114 @@ const sortIntoLines = (containerWidth, spaceWidth) => (lines, wordWidth) => comp
     append([])
   )
 )(lines)
-
-const verticalSlice = (child, cuttingPoint) => {
-  const result = []
-
-  const clonedChild = child.cloneNode(true)
-
-  child.parentNode.appendChild(clonedChild)
-  const {spaceWidth, wordWidths} = converge(getWordWidths, [identity, splitToWords])(clonedChild)
-  const containerWidth = child.scrollWidth
-
-  const indexesPerLine = reduce(sortIntoLines(containerWidth, spaceWidth), [], wordWidths)
-
-  // TODO: rejoin words into lines
-  console.log(indexesPerLine, clonedChild, clonedChild.scrollHeight)
-
-  // clonedChild.parentNode.removeChild(clonedChild)
-
-  return result
-}
-
-// --------------
-
-class SplitArticle {
-  constructor (rawConfig) {
-    const children = Array.from(config.source.children)
-
-    const measuredWidth = getMeasuredWidth(config.source, config.width)
-    config.source.style.width = measuredWidth + 'px'
-
-    // ----------------------
-
-    let i = 0
-
-    const firstContainer = config.targets[0]
-    const contentsForFirstContainer = []
-
-    const remainingSpaceInFirstContainer = () => firstContainer.scrollHeight - contentsForFirstContainer.map(content => content.scrollHeight).reduce((a, b) => a + b, 0)
-
-    while(true){
-      let remainingSpace = remainingSpaceInFirstContainer()
-      let currentChild = children[i]
-
-      console.log('paragraph [' + i + '] size:', currentChild.scrollHeight, '| remaining space in 1st container:', remainingSpace)
-
-      if(currentChild.scrollHeight < remainingSpace){
-        console.log('fits into first container')
-        contentsForFirstContainer.push(currentChild)
-      }else{
-        console.error('doesn\'t fit, need to slice')
-        console.log(verticalSlice(currentChild, remainingSpace))
-
-        break
-      }
-
-      i++
-    }
-  }
-}
 */
 
-var DEFAULT_CONFIG = {
-  width: 50
-};
+var sliceContentVertically = function (child, cuttingPoint) {
+  var topHalf = child.cloneNode(true);
+  var container = child.parentNode;
+  // const containerWidth = child.scrollWidth
 
-var onResize = function (fn) {
-  var previousPageHeight = document.body.scrollHeight;
+  container.appendChild(topHalf);
 
-  window.addEventListener('resize', throttle(function () {
-    if (document.body.scrollHeight !== previousPageHeight) {
-      previousPageHeight = document.body.scrollHeight;
-      fn();
-    }
-  }, 200, {
-    trailing: true,
-    leading: false
-  }));
+  // const {spaceWidth, spaceHeight, wordWidths} = converge(getWordWidths, [identity, splitToWords])(topHalf)
+  // console.log(wordWidths)
+
+  // !!! TODO: indexesPerLine should contain the indexes of each word
+  // it does now!
+  // const indexesPerLine = reduce(sortIntoLines(containerWidth, spaceWidth), [], wordWidths)
+
+  // const cutAfterLineNo = 2
+
+  // TODO: rejoin words into lines
+  // console.log(indexesPerLine, topHalf, getContentHeight(topHalf))
+
+  var bottomHalf = topHalf.cloneNode(true);
+
+  container.removeChild(topHalf);
+
+  topHalf.style.marginBottom = 0;
+  bottomHalf.style.marginTop = 0;
+
+  return [topHalf, bottomHalf]
 };
 
 var hide = function (element) {
   element.style = 'height:0;position:absolute;overflow:hidden';
 };
 
-// const generateMeasureText = compose(join(''), repeat('a'))
+var generateMeasurementText = compose(join(''), repeat('a'));
+
+var getMeasurementWidth = function (source, width) {
+  var measurement = document.createElement('div');
+  measurement.textContent = generateMeasurementText(width);
+  measurement.style = 'position:absolute;visibility:hidden';
+
+  source.appendChild(measurement);
+  var result = measurement.scrollWidth;
+  source.removeChild(measurement);
+
+  return result
+};
+
+var createColumn = function (width) {
+  var col = document.createElement('div');
+  col.style = 'display:inline-block;height:100%;width:' + width + 'px';
+  return col
+};
+
+var addColumn = function (container, width) {
+  var col = createColumn(width);
+  container.appendChild(col);
+  return col
+};
 
 function splitArticle (rawConfig) {
   var config = merge(DEFAULT_CONFIG, rawConfig);
   hide(config.source);
 
-  console.log(getContentHeight(config.source));
+  var measuredWidth = getMeasurementWidth(config.source, config.width);
+  config.source.style.width = measuredWidth + 'px';
+
+  // --------------------
+
+  var slices = sliceContentVertically(config.source.children[0], 100);
+
+  addColumn(config.targets[0], measuredWidth).appendChild(slices[0]);
+  addColumn(config.targets[1], measuredWidth).appendChild(slices[1]);
+
+  // --------------------
+
+  /*
+  const children = Array.from(config.source.children)
+  const containerContents = []
+
+  let i = 0
+
+  const latestContainer = 0
+
+  const remainingSpaceInFirstContainer = () => firstContainer.scrollHeight - contentsForFirstContainer.map(content => content.scrollHeight).reduce((a, b) => a + b, 0)
+
+  while(true){
+    let remainingSpace = remainingSpaceInFirstContainer()
+    let currentChild = children[i]
+
+    console.log('paragraph [' + i + '] size:', currentChild.scrollHeight, '| remaining space in 1st container:', remainingSpace)
+
+    if(currentChild.scrollHeight < remainingSpace){
+      console.log('fits into first container')
+      contentsForFirstContainer.push(currentChild)
+    }else{
+      console.error('doesn\'t fit, need to slice')
+      verticalSlice(currentChild, remainingSpace)
+
+      break
+    }
+
+    i++
+  }
+  */
+
+  // --------------------
 }
 
 splitArticle.watch = function (rawConfig) {

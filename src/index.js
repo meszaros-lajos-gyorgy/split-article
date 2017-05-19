@@ -1,18 +1,42 @@
-/*
-const getMeasuredWidth = (source, width) => {
-  const measure = document.createElement('div')
-  measure.textContent = generateMeasureText(width)
-  measure.style = 'position:absolute;visibility:hidden'
+import {
+  // clone,
+  // replace,
+  // reverse,
+  // curry,
+  // map,
+  // add,
+  // sum,
+  // multiply,
+  // inc,
+  // adjust,
+  // dec,
+  // length,
+  // when,
+  // either,
+  // isEmpty,
+  // last,
+  // append,
+  // converge,
+  // identity,
+  // reduce,
+  // addIndex,
+  compose,
+  join,
+  repeat,
+  merge
+} from 'ramda'
 
-  let result
+import {
+  // getContentHeight
+} from './helpers/domsizes'
 
-  source.appendChild(measure)
-  result = measure.scrollWidth
-  source.removeChild(measure)
+import onResize from './helpers/onResize'
 
-  return result
+const DEFAULT_CONFIG = {
+  width: 50
 }
 
+/*
 const splitToWords = curry(child => {
   const elements = child.innerHTML.match(/(?:<[^>]+>|[^\r\n\t <]+)/g)
   const tags = []
@@ -33,25 +57,32 @@ const splitToWords = curry(child => {
     return words
   }, [], elements)
 })
+*/
 
-const renderWord = ([openingTags, content, closingTags]) => join('', openingTags) + content + join('', closingTags)
+// const renderWord = ([openingTags, content, closingTags]) => join('', openingTags) + content + join('', closingTags)
 
+/*
 const getWordWidths = curry((child, paragraph) => {
+  // todo: rendering should go to a separate function
   child.innerHTML = join(' ', map(renderWord, paragraph)) + '<span class="space">&nbsp;</span>'
 
   const space = child.querySelector('.space')
   const spaceWidth = space.scrollWidth
+  const spaceHeight = space.scrollHeight
 
   space.parentNode.removeChild(space)
 
   return {
+    spaceHeight: spaceHeight,
     spaceWidth: spaceWidth,
-    wordWidths: map(node => node.scrollWidth, Array.from(child.children))
+    wordWidths: addIndex(map)((node, index) => [index, node.scrollWidth], Array.from(child.children))
   }
 })
+*/
 
-const calculateWidth = (line, spaceWidth) => add(sum(line), multiply(spaceWidth, inc(length(line))))
+// const calculateWidth = (line, spaceWidth) => add(sum(line), multiply(spaceWidth, inc(length(line))))
 
+/*
 const sortIntoLines = (containerWidth, spaceWidth) => (lines, wordWidth) => compose(
   converge(
     adjust(append(wordWidth)),
@@ -68,108 +99,114 @@ const sortIntoLines = (containerWidth, spaceWidth) => (lines, wordWidth) => comp
     append([])
   )
 )(lines)
-
-const verticalSlice = (child, cuttingPoint) => {
-  const result = []
-
-  const clonedChild = child.cloneNode(true)
-
-  child.parentNode.appendChild(clonedChild)
-  const {spaceWidth, wordWidths} = converge(getWordWidths, [identity, splitToWords])(clonedChild)
-  const containerWidth = child.scrollWidth
-
-  const indexesPerLine = reduce(sortIntoLines(containerWidth, spaceWidth), [], wordWidths)
-
-  // TODO: rejoin words into lines
-  console.log(indexesPerLine, clonedChild, clonedChild.scrollHeight)
-
-  // clonedChild.parentNode.removeChild(clonedChild)
-
-  return result
-}
-
-// --------------
-
-class SplitArticle {
-  constructor (rawConfig) {
-    const children = Array.from(config.source.children)
-
-    const measuredWidth = getMeasuredWidth(config.source, config.width)
-    config.source.style.width = measuredWidth + 'px'
-
-    // ----------------------
-
-    let i = 0
-
-    const firstContainer = config.targets[0]
-    const contentsForFirstContainer = []
-
-    const remainingSpaceInFirstContainer = () => firstContainer.scrollHeight - contentsForFirstContainer.map(content => content.scrollHeight).reduce((a, b) => a + b, 0)
-
-    while(true){
-      let remainingSpace = remainingSpaceInFirstContainer()
-      let currentChild = children[i]
-
-      console.log('paragraph [' + i + '] size:', currentChild.scrollHeight, '| remaining space in 1st container:', remainingSpace)
-
-      if(currentChild.scrollHeight < remainingSpace){
-        console.log('fits into first container')
-        contentsForFirstContainer.push(currentChild)
-      }else{
-        console.error('doesn\'t fit, need to slice')
-        console.log(verticalSlice(currentChild, remainingSpace))
-
-        break
-      }
-
-      i++
-    }
-  }
-}
 */
 
-import {
-  // compose,
-  // join,
-  merge
-  // repeat
-} from 'ramda'
+const sliceContentVertically = (child, cuttingPoint) => {
+  const topHalf = child.cloneNode(true)
+  const container = child.parentNode
+  // const containerWidth = child.scrollWidth
 
-import {
-  getContentHeight
-} from './helpers/domsizes'
+  container.appendChild(topHalf)
 
-import throttle from './helpers/throttle'
+  // const {spaceWidth, spaceHeight, wordWidths} = converge(getWordWidths, [identity, splitToWords])(topHalf)
+  // console.log(wordWidths)
 
-const DEFAULT_CONFIG = {
-  width: 50
-}
+  // !!! TODO: indexesPerLine should contain the indexes of each word
+  // it does now!
+  // const indexesPerLine = reduce(sortIntoLines(containerWidth, spaceWidth), [], wordWidths)
 
-const onResize = fn => {
-  let previousPageHeight = document.body.scrollHeight
+  // const cutAfterLineNo = 2
 
-  window.addEventListener('resize', throttle(() => {
-    if (document.body.scrollHeight !== previousPageHeight) {
-      previousPageHeight = document.body.scrollHeight
-      fn()
-    }
-  }, 200, {
-    trailing: true,
-    leading: false
-  }))
+  // TODO: rejoin words into lines
+  // console.log(indexesPerLine, topHalf, getContentHeight(topHalf))
+
+  const bottomHalf = topHalf.cloneNode(true)
+
+  container.removeChild(topHalf)
+
+  topHalf.style.marginBottom = 0
+  bottomHalf.style.marginTop = 0
+
+  return [topHalf, bottomHalf]
 }
 
 const hide = element => {
   element.style = 'height:0;position:absolute;overflow:hidden'
 }
 
-// const generateMeasureText = compose(join(''), repeat('a'))
+const generateMeasurementText = compose(join(''), repeat('a'))
+
+const getMeasurementWidth = (source, width) => {
+  const measurement = document.createElement('div')
+  measurement.textContent = generateMeasurementText(width)
+  measurement.style = 'position:absolute;visibility:hidden'
+
+  source.appendChild(measurement)
+  const result = measurement.scrollWidth
+  source.removeChild(measurement)
+
+  return result
+}
+
+const createColumn = (width) => {
+  const col = document.createElement('div')
+  col.style = 'display:inline-block;height:100%;width:' + width + 'px'
+  return col
+}
+
+const addColumn = (container, width) => {
+  const col = createColumn(width)
+  container.appendChild(col)
+  return col
+}
 
 function splitArticle (rawConfig) {
   const config = merge(DEFAULT_CONFIG, rawConfig)
   hide(config.source)
 
-  console.log(getContentHeight(config.source))
+  const measuredWidth = getMeasurementWidth(config.source, config.width)
+  config.source.style.width = measuredWidth + 'px'
+
+  // --------------------
+
+  const slices = sliceContentVertically(config.source.children[0], 100)
+
+  addColumn(config.targets[0], measuredWidth).appendChild(slices[0])
+  addColumn(config.targets[1], measuredWidth).appendChild(slices[1])
+
+  // --------------------
+
+  /*
+  const children = Array.from(config.source.children)
+  const containerContents = []
+
+  let i = 0
+
+  const latestContainer = 0
+
+  const remainingSpaceInFirstContainer = () => firstContainer.scrollHeight - contentsForFirstContainer.map(content => content.scrollHeight).reduce((a, b) => a + b, 0)
+
+  while(true){
+    let remainingSpace = remainingSpaceInFirstContainer()
+    let currentChild = children[i]
+
+    console.log('paragraph [' + i + '] size:', currentChild.scrollHeight, '| remaining space in 1st container:', remainingSpace)
+
+    if(currentChild.scrollHeight < remainingSpace){
+      console.log('fits into first container')
+      contentsForFirstContainer.push(currentChild)
+    }else{
+      console.error('doesn\'t fit, need to slice')
+      verticalSlice(currentChild, remainingSpace)
+
+      break
+    }
+
+    i++
+  }
+  */
+
+  // --------------------
 }
 
 splitArticle.watch = rawConfig => {

@@ -1,33 +1,41 @@
-// split-article - created by Lajos Meszaros <m_lajos@hotmail.com> - MIT licence - last built on 2017-05-18
+// split-article - created by Lajos Meszaros <m_lajos@hotmail.com> - MIT licence - last built on 2017-05-19
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define(factory) :
 	(global.SplitArticle = factory());
 }(this, (function () { 'use strict';
 
-var _arity = function _arity(n, fn) {
-  /* eslint-disable no-unused-vars */
-  switch (n) {
-    case 0: return function() { return fn.apply(this, arguments); };
-    case 1: return function(a0) { return fn.apply(this, arguments); };
-    case 2: return function(a0, a1) { return fn.apply(this, arguments); };
-    case 3: return function(a0, a1, a2) { return fn.apply(this, arguments); };
-    case 4: return function(a0, a1, a2, a3) { return fn.apply(this, arguments); };
-    case 5: return function(a0, a1, a2, a3, a4) { return fn.apply(this, arguments); };
-    case 6: return function(a0, a1, a2, a3, a4, a5) { return fn.apply(this, arguments); };
-    case 7: return function(a0, a1, a2, a3, a4, a5, a6) { return fn.apply(this, arguments); };
-    case 8: return function(a0, a1, a2, a3, a4, a5, a6, a7) { return fn.apply(this, arguments); };
-    case 9: return function(a0, a1, a2, a3, a4, a5, a6, a7, a8) { return fn.apply(this, arguments); };
-    case 10: return function(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9) { return fn.apply(this, arguments); };
-    default: throw new Error('First argument to _arity must be a non-negative integer no greater than ten');
-  }
+var _has = function _has(prop, obj) {
+  return Object.prototype.hasOwnProperty.call(obj, prop);
 };
 
-var _pipe = function _pipe(f, g) {
-  return function() {
-    return g.call(this, f.apply(this, arguments));
-  };
+// Based on https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/Object/assign
+var _objectAssign = function _objectAssign(target) {
+  var arguments$1 = arguments;
+
+  if (target == null) {
+    throw new TypeError('Cannot convert undefined or null to object');
+  }
+
+  var output = Object(target);
+  var idx = 1;
+  var length = arguments.length;
+  while (idx < length) {
+    var source = arguments$1[idx];
+    if (source != null) {
+      for (var nextKey in source) {
+        if (_has(nextKey, source)) {
+          output[nextKey] = source[nextKey];
+        }
+      }
+    }
+    idx += 1;
+  }
+  return output;
 };
+
+var _assign =
+  typeof Object.assign === 'function' ? Object.assign : _objectAssign;
 
 var _isPlaceholder = function _isPlaceholder(a) {
   return a != null &&
@@ -75,6 +83,57 @@ var _curry2 = function _curry2(fn) {
              : _isPlaceholder(b) ? _curry1(function(_b) { return fn(a, _b); })
              : fn(a, b);
     }
+  };
+};
+
+/**
+ * Create a new object with the own properties of the first object merged with
+ * the own properties of the second object. If a key exists in both objects,
+ * the value from the second object will be used.
+ *
+ * @func
+ * @memberOf R
+ * @since v0.1.0
+ * @category Object
+ * @sig {k: v} -> {k: v} -> {k: v}
+ * @param {Object} l
+ * @param {Object} r
+ * @return {Object}
+ * @see R.mergeWith, R.mergeWithKey
+ * @example
+ *
+ *      R.merge({ 'name': 'fred', 'age': 10 }, { 'age': 40 });
+ *      //=> { 'name': 'fred', 'age': 40 }
+ *
+ *      var resetToDefault = R.merge(R.__, {x: 0});
+ *      resetToDefault({x: 5, y: 2}); //=> {x: 0, y: 2}
+ * @symb R.merge({ x: 1, y: 2 }, { y: 5, z: 3 }) = { x: 1, y: 5, z: 3 }
+ */
+var merge = _curry2(function merge(l, r) {
+  return _assign({}, l, r);
+});
+
+var _arity = function _arity(n, fn) {
+  /* eslint-disable no-unused-vars */
+  switch (n) {
+    case 0: return function() { return fn.apply(this, arguments); };
+    case 1: return function(a0) { return fn.apply(this, arguments); };
+    case 2: return function(a0, a1) { return fn.apply(this, arguments); };
+    case 3: return function(a0, a1, a2) { return fn.apply(this, arguments); };
+    case 4: return function(a0, a1, a2, a3) { return fn.apply(this, arguments); };
+    case 5: return function(a0, a1, a2, a3, a4) { return fn.apply(this, arguments); };
+    case 6: return function(a0, a1, a2, a3, a4, a5) { return fn.apply(this, arguments); };
+    case 7: return function(a0, a1, a2, a3, a4, a5, a6) { return fn.apply(this, arguments); };
+    case 8: return function(a0, a1, a2, a3, a4, a5, a6, a7) { return fn.apply(this, arguments); };
+    case 9: return function(a0, a1, a2, a3, a4, a5, a6, a7, a8) { return fn.apply(this, arguments); };
+    case 10: return function(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9) { return fn.apply(this, arguments); };
+    default: throw new Error('First argument to _arity must be a non-negative integer no greater than ten');
+  }
+};
+
+var _pipe = function _pipe(f, g) {
+  return function() {
+    return g.call(this, f.apply(this, arguments));
   };
 };
 
@@ -492,10 +551,6 @@ var _functionName = function _functionName(f) {
   // String(x => x) evaluates to "x => x", so the pattern may not match.
   var match = String(f).match(/^function (\w*)/);
   return match == null ? '' : match[1];
-};
-
-var _has = function _has(prop, obj) {
-  return Object.prototype.hasOwnProperty.call(obj, prop);
 };
 
 /**
@@ -1058,61 +1113,6 @@ var head = nth(0);
  */
 var last = nth(-1);
 
-// Based on https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/Object/assign
-var _objectAssign = function _objectAssign(target) {
-  var arguments$1 = arguments;
-
-  if (target == null) {
-    throw new TypeError('Cannot convert undefined or null to object');
-  }
-
-  var output = Object(target);
-  var idx = 1;
-  var length = arguments.length;
-  while (idx < length) {
-    var source = arguments$1[idx];
-    if (source != null) {
-      for (var nextKey in source) {
-        if (_has(nextKey, source)) {
-          output[nextKey] = source[nextKey];
-        }
-      }
-    }
-    idx += 1;
-  }
-  return output;
-};
-
-var _assign =
-  typeof Object.assign === 'function' ? Object.assign : _objectAssign;
-
-/**
- * Create a new object with the own properties of the first object merged with
- * the own properties of the second object. If a key exists in both objects,
- * the value from the second object will be used.
- *
- * @func
- * @memberOf R
- * @since v0.1.0
- * @category Object
- * @sig {k: v} -> {k: v} -> {k: v}
- * @param {Object} l
- * @param {Object} r
- * @return {Object}
- * @see R.mergeWith, R.mergeWithKey
- * @example
- *
- *      R.merge({ 'name': 'fred', 'age': 10 }, { 'age': 40 });
- *      //=> { 'name': 'fred', 'age': 40 }
- *
- *      var resetToDefault = R.merge(R.__, {x: 0});
- *      resetToDefault({x: 5, y: 2}); //=> {x: 0, y: 2}
- * @symb R.merge({ x: 1, y: 2 }, { y: 5, z: 3 }) = { x: 1, y: 5, z: 3 }
- */
-var merge = _curry2(function merge(l, r) {
-  return _assign({}, l, r);
-});
-
 /**
  * A function that returns the `!` of its argument. It will return `true` when
  * passed false-y value, and `false` when passed a truth-y one.
@@ -1135,6 +1135,85 @@ var merge = _curry2(function merge(l, r) {
 var not = _curry1(function not(a) {
   return !a;
 });
+
+var getComputedProperty = curry(function (property, element) { return window.getComputedStyle(element).getPropertyValue(property); });
+
+var getPaddingTop = compose(parseFloat, getComputedProperty('padding-top'));
+var getPaddingBottom = compose(parseFloat, getComputedProperty('padding-bottom'));
+var getBorderTop = compose(parseFloat, getComputedProperty('border-top-width'));
+var getBorderBottom = compose(parseFloat, getComputedProperty('border-bottom-width'));
+var getMarginTop = compose(parseFloat, getComputedProperty('margin-top'));
+var getMarginBottom = compose(parseFloat, getComputedProperty('margin-bottom'));
+
+// todo: can we move element out to the end?
+var isOutpositioned = function (element) { return contains(getComputedProperty('position', element), ['absolute', 'fixed']); };
+var isFloating = function (element) { return not(equals('none', getComputedProperty('float', element))); };
+
+var getContentHeight = function (element) {
+  var removeThisToo = 0;
+
+  if (isOutpositioned(element) || isFloating(element)) {
+    removeThisToo += getMarginTop(head(element.children));
+    removeThisToo += getMarginBottom(last(element.children));
+  } else {
+    if (getBorderTop(element)) {
+      removeThisToo += getMarginTop(head(element.children));
+    }
+    if (getBorderBottom(element)) {
+      removeThisToo += getMarginBottom(last(element.children));
+    }
+  }
+
+  return element.scrollHeight - getPaddingTop(element) - getPaddingBottom(element) - removeThisToo
+};
+
+// http://stackoverflow.com/a/27078401/1806628
+function throttle(func, wait, options) {
+  if ( options === void 0 ) options = {};
+
+  var context, args, result;
+  var timeout = null;
+  var previous = 0;
+  
+  var later = function() {
+    previous = options.leading === false ? 0 : Date.now();
+    timeout = null;
+    result = func.apply(context, args);
+    
+    if (!timeout) {
+      context = args = null;
+    }
+  };
+  
+  return function() {
+    var now = Date.now();
+    
+    if (!previous && options.leading === false) {
+      previous = now;
+    }
+    
+    var remaining = wait - (now - previous);
+    
+    context = this;
+    args = arguments;
+    
+    if (remaining <= 0 || remaining > wait) {
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
+      previous = now;
+      result = func.apply(context, args);
+      if (!timeout) {
+        context = args = null;
+      }
+    } else if (!timeout && options.trailing !== false) {
+      timeout = setTimeout(later, remaining);
+    }
+    
+    return result
+  }
+}
 
 /*
 import {
@@ -1163,7 +1242,6 @@ import {
   sum,
   when
 } from 'ramda'
-import throttle from './helpers/throttle'
 
 const generateMeasureText = compose(join(''), repeat('a'))
 
@@ -1318,56 +1396,24 @@ class SplitArticle {
 
       i++
     }
-
-    // ----------------------
-
-    let previousPageHeight = document.body.scrollHeight
-
-    window.addEventListener('resize', throttle(() => {
-      if(document.body.scrollHeight !== previousPageHeight){
-        previousPageHeight = document.body.scrollHeight
-
-        console.log('need recalculation')
-      }
-    }, 200, {
-      trailing: true,
-      leading: false
-    }))
   }
 }
 */
 
 // =================================
 
-var getComputedProperty = curry(function (property, element) { return window.getComputedStyle(element).getPropertyValue(property); });
+var onResize = function (fn) {
+  var previousPageHeight = document.body.scrollHeight;
 
-var getPaddingTop = compose(parseFloat, getComputedProperty('padding-top'));
-var getPaddingBottom = compose(parseFloat, getComputedProperty('padding-bottom'));
-var getMarginTop = compose(parseFloat, getComputedProperty('margin-top'));
-var getMarginBottom = compose(parseFloat, getComputedProperty('margin-bottom'));
-var getBorderTop = compose(parseFloat, getComputedProperty('border-top-width'));
-var getBorderBottom = compose(parseFloat, getComputedProperty('border-bottom-width'));
-
-// todo: can we move element out to the end?
-var isOutpositioned = function (element) { return contains(getComputedProperty('position', element), ['absolute', 'fixed']); };
-var isFloating = function (element) { return not(equals('none', getComputedProperty('float', element))); };
-
-var getContentHeight = function (element) {
-  var removeThisToo = 0;
-
-  if (isOutpositioned(element) || isFloating(element)) {
-    removeThisToo += getMarginTop(head(element.children));
-    removeThisToo += getMarginBottom(last(element.children));
-  } else {
-    if (getBorderTop(element)) {
-      removeThisToo += getMarginTop(head(element.children));
+  window.addEventListener('resize', throttle(function () {
+    if (document.body.scrollHeight !== previousPageHeight) {
+      previousPageHeight = document.body.scrollHeight;
+      fn();
     }
-    if (getBorderBottom(element)) {
-      removeThisToo += getMarginBottom(last(element.children));
-    }
-  }
-
-  return element.scrollHeight - getPaddingTop(element) - getPaddingBottom(element) - removeThisToo
+  }, 200, {
+    trailing: true,
+    leading: false
+  }));
 };
 
 var SplitArticle = function SplitArticle (rawConfig) {
@@ -1375,6 +1421,10 @@ var SplitArticle = function SplitArticle (rawConfig) {
 
   // todo: test this
   console.log(getContentHeight(this.config.source));
+
+  onResize(function () {
+    console.log('recalculation is needed');
+  });
 };
 
 return SplitArticle;

@@ -25,7 +25,6 @@ import {
   sum,
   when
 } from 'ramda'
-import throttle from './helpers/throttle'
 
 const generateMeasureText = compose(join(''), repeat('a'))
 
@@ -180,21 +179,6 @@ class SplitArticle {
 
       i++
     }
-
-    // ----------------------
-
-    let previousPageHeight = document.body.scrollHeight
-
-    window.addEventListener('resize', throttle(() => {
-      if(document.body.scrollHeight !== previousPageHeight){
-        previousPageHeight = document.body.scrollHeight
-
-        console.log('need recalculation')
-      }
-    }, 200, {
-      trailing: true,
-      leading: false
-    }))
   }
 }
 */
@@ -202,53 +186,39 @@ class SplitArticle {
 // =================================
 
 import {
-  compose,
-  contains,
-  curry,
-  equals,
-  head,
-  last,
-  merge,
-  not
+  merge
 } from 'ramda'
 
-const getComputedProperty = curry((property, element) => window.getComputedStyle(element).getPropertyValue(property))
+import {
+  getContentHeight
+} from './helpers/domsizes'
 
-const getPaddingTop = compose(parseFloat, getComputedProperty('padding-top'))
-const getPaddingBottom = compose(parseFloat, getComputedProperty('padding-bottom'))
-const getMarginTop = compose(parseFloat, getComputedProperty('margin-top'))
-const getMarginBottom = compose(parseFloat, getComputedProperty('margin-bottom'))
-const getBorderTop = compose(parseFloat, getComputedProperty('border-top-width'))
-const getBorderBottom = compose(parseFloat, getComputedProperty('border-bottom-width'))
+import throttle from './helpers/throttle'
 
-// todo: can we move element out to the end?
-const isOutpositioned = element => contains(getComputedProperty('position', element), ['absolute', 'fixed'])
-const isFloating = element => not(equals('none', getComputedProperty('float', element)))
-
-const getContentHeight = element => {
-  let removeThisToo = 0
-
-  if (isOutpositioned(element) || isFloating(element)) {
-    removeThisToo += getMarginTop(head(element.children))
-    removeThisToo += getMarginBottom(last(element.children))
-  } else {
-    if (getBorderTop(element)) {
-      removeThisToo += getMarginTop(head(element.children))
+const onResize = fn => {
+  let previousPageHeight = document.body.scrollHeight
+  
+  window.addEventListener('resize', throttle(() => {
+    if(document.body.scrollHeight !== previousPageHeight){
+      previousPageHeight = document.body.scrollHeight
+      fn()
     }
-    if (getBorderBottom(element)) {
-      removeThisToo += getMarginBottom(last(element.children))
-    }
-  }
-
-  return element.scrollHeight - getPaddingTop(element) - getPaddingBottom(element) - removeThisToo
+  }, 200, {
+    trailing: true,
+    leading: false
+  }))
 }
 
 class SplitArticle {
   constructor (rawConfig) {
     this.config = merge({ width: 50 }, rawConfig)
-
+    
     // todo: test this
     console.log(getContentHeight(this.config.source))
+    
+    onResize(() => {
+      console.log('recalculation is needed')
+    })
   }
 }
 

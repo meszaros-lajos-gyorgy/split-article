@@ -17,7 +17,7 @@
     "commit": "git-cz",
     "commit:again": "git-cz --retry",
     "dist:clean": "git rm -rf dist && rimraf dist || true",
-    "dist:stage": "git add dist"
+    "dist:stage": "git add dist --force"
   },
   "pre-commit": [
     "test",

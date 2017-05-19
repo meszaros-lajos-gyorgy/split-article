@@ -22,7 +22,7 @@ export default [{
   entry: 'src/index.js',
   dest: 'dist/split-article.js',
   format: 'umd',
-  moduleName: 'SplitArticle',
+  moduleName: 'splitArticle',
   sourceMap: false,
   plugins: [
     resolve({
@@ -41,7 +41,7 @@ export default [{
   entry: 'src/index.js',
   dest: 'dist/split-article.min.js',
   format: 'umd',
-  moduleName: 'SplitArticle',
+  moduleName: 'splitArticle',
   sourceMap: true,
   plugins: [
     resolve({

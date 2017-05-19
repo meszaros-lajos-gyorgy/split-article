@@ -2,7 +2,7 @@
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define(factory) :
-	(global.SplitArticle = factory());
+	(global.splitArticle = factory());
 }(this, (function () { 'use strict';
 
 var _has = function _has(prop, obj) {
@@ -1216,35 +1216,6 @@ function throttle(func, wait, options) {
 }
 
 /*
-import {
-  add,
-  adjust,
-  append,
-  clone,
-  compose,
-  converge,
-  curry,
-  dec,
-  either,
-  identity,
-  inc,
-  isEmpty,
-  join,
-  last,
-  length,
-  map,
-  merge,
-  multiply,
-  reduce,
-  repeat,
-  replace,
-  reverse,
-  sum,
-  when
-} from 'ramda'
-
-const generateMeasureText = compose(join(''), repeat('a'))
-
 const getMeasuredWidth = (source, width) => {
   const measure = document.createElement('div')
   measure.textContent = generateMeasureText(width)
@@ -1336,51 +1307,25 @@ const verticalSlice = (child, cuttingPoint) => {
 
 // --------------
 
-const getFullHeight = element => {
-  return getContentHeight() +
-}
-
-const getContentHeight = element => {
-
-}
-
-const getTopOffset = element => {
-  const stlye = window.getComputedStyle(element)
-  return (
-    parseFloat(style.getPropertyValue('padding-top'))
-    + parseFloat(style.getPropertyValue('border-top'))
-    + parseFloat(style.getPropertyValue('-top'))
-  )
-}
-
-const getBottomOffset = element => {
-
-}
-
-// --------------
-
 class SplitArticle {
   constructor (rawConfig) {
-    this.config = merge({ width: 50 }, rawConfig)
-    this.config.source.style = 'height:0;position:absolute;overflow:hidden'
+    const children = Array.from(config.source.children)
 
-    this.children = Array.from(this.config.source.children)
-
-    this.measuredWidth = getMeasuredWidth(this.config.source, this.config.width)
-    this.config.source.style.width = this.measuredWidth + 'px'
+    const measuredWidth = getMeasuredWidth(config.source, config.width)
+    config.source.style.width = measuredWidth + 'px'
 
     // ----------------------
 
     let i = 0
 
-    const firstContainer = this.config.targets[0]
+    const firstContainer = config.targets[0]
     const contentsForFirstContainer = []
 
     const remainingSpaceInFirstContainer = () => firstContainer.scrollHeight - contentsForFirstContainer.map(content => content.scrollHeight).reduce((a, b) => a + b, 0)
 
     while(true){
       let remainingSpace = remainingSpaceInFirstContainer()
-      let currentChild = this.children[i]
+      let currentChild = children[i]
 
       console.log('paragraph [' + i + '] size:', currentChild.scrollHeight, '| remaining space in 1st container:', remainingSpace)
 
@@ -1400,7 +1345,9 @@ class SplitArticle {
 }
 */
 
-// =================================
+var DEFAULT_CONFIG = {
+  width: 50
+};
 
 var onResize = function (fn) {
   var previousPageHeight = document.body.scrollHeight;
@@ -1416,17 +1363,24 @@ var onResize = function (fn) {
   }));
 };
 
-var SplitArticle = function SplitArticle (rawConfig) {
-  this.config = merge({ width: 50 }, rawConfig);
-
-  // todo: test this
-  console.log(getContentHeight(this.config.source));
-
-  onResize(function () {
-    console.log('recalculation is needed');
-  });
+var hide = function (element) {
+  element.style = 'height:0;position:absolute;overflow:hidden';
 };
 
-return SplitArticle;
+// const generateMeasureText = compose(join(''), repeat('a'))
+
+function splitArticle (rawConfig) {
+  var config = merge(DEFAULT_CONFIG, rawConfig);
+  hide(config.source);
+
+  console.log(getContentHeight(config.source));
+}
+
+splitArticle.watch = function (rawConfig) {
+  splitArticle(rawConfig);
+  onResize(function () { return splitArticle(rawConfig); });
+};
+
+return splitArticle;
 
 })));

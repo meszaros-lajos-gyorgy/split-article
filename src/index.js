@@ -1,33 +1,4 @@
 /*
-import {
-  add,
-  adjust,
-  append,
-  clone,
-  compose,
-  converge,
-  curry,
-  dec,
-  either,
-  identity,
-  inc,
-  isEmpty,
-  join,
-  last,
-  length,
-  map,
-  merge,
-  multiply,
-  reduce,
-  repeat,
-  replace,
-  reverse,
-  sum,
-  when
-} from 'ramda'
-
-const generateMeasureText = compose(join(''), repeat('a'))
-
 const getMeasuredWidth = (source, width) => {
   const measure = document.createElement('div')
   measure.textContent = generateMeasureText(width)
@@ -119,51 +90,25 @@ const verticalSlice = (child, cuttingPoint) => {
 
 // --------------
 
-const getFullHeight = element => {
-  return getContentHeight() +
-}
-
-const getContentHeight = element => {
-
-}
-
-const getTopOffset = element => {
-  const stlye = window.getComputedStyle(element)
-  return (
-    parseFloat(style.getPropertyValue('padding-top'))
-    + parseFloat(style.getPropertyValue('border-top'))
-    + parseFloat(style.getPropertyValue('-top'))
-  )
-}
-
-const getBottomOffset = element => {
-
-}
-
-// --------------
-
 class SplitArticle {
   constructor (rawConfig) {
-    this.config = merge({ width: 50 }, rawConfig)
-    this.config.source.style = 'height:0;position:absolute;overflow:hidden'
+    const children = Array.from(config.source.children)
 
-    this.children = Array.from(this.config.source.children)
-
-    this.measuredWidth = getMeasuredWidth(this.config.source, this.config.width)
-    this.config.source.style.width = this.measuredWidth + 'px'
+    const measuredWidth = getMeasuredWidth(config.source, config.width)
+    config.source.style.width = measuredWidth + 'px'
 
     // ----------------------
 
     let i = 0
 
-    const firstContainer = this.config.targets[0]
+    const firstContainer = config.targets[0]
     const contentsForFirstContainer = []
 
     const remainingSpaceInFirstContainer = () => firstContainer.scrollHeight - contentsForFirstContainer.map(content => content.scrollHeight).reduce((a, b) => a + b, 0)
 
     while(true){
       let remainingSpace = remainingSpaceInFirstContainer()
-      let currentChild = this.children[i]
+      let currentChild = children[i]
 
       console.log('paragraph [' + i + '] size:', currentChild.scrollHeight, '| remaining space in 1st container:', remainingSpace)
 
@@ -183,10 +128,11 @@ class SplitArticle {
 }
 */
 
-// =================================
-
 import {
+  // compose,
+  // join,
   merge
+  // repeat
 } from 'ramda'
 
 import {
@@ -194,6 +140,10 @@ import {
 } from './helpers/domsizes'
 
 import throttle from './helpers/throttle'
+
+const DEFAULT_CONFIG = {
+  width: 50
+}
 
 const onResize = fn => {
   let previousPageHeight = document.body.scrollHeight
@@ -209,17 +159,22 @@ const onResize = fn => {
   }))
 }
 
-class SplitArticle {
-  constructor (rawConfig) {
-    this.config = merge({ width: 50 }, rawConfig)
-
-    // todo: test this
-    console.log(getContentHeight(this.config.source))
-
-    onResize(() => {
-      console.log('recalculation is needed')
-    })
-  }
+const hide = element => {
+  element.style = 'height:0;position:absolute;overflow:hidden'
 }
 
-export default SplitArticle
+// const generateMeasureText = compose(join(''), repeat('a'))
+
+function splitArticle (rawConfig) {
+  const config = merge(DEFAULT_CONFIG, rawConfig)
+  hide(config.source)
+
+  console.log(getContentHeight(config.source))
+}
+
+splitArticle.watch = rawConfig => {
+  splitArticle(rawConfig)
+  onResize(() => splitArticle(rawConfig))
+}
+
+export default splitArticle

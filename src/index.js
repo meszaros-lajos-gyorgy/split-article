@@ -197,9 +197,9 @@ import throttle from './helpers/throttle'
 
 const onResize = fn => {
   let previousPageHeight = document.body.scrollHeight
-  
+
   window.addEventListener('resize', throttle(() => {
-    if(document.body.scrollHeight !== previousPageHeight){
+    if (document.body.scrollHeight !== previousPageHeight) {
       previousPageHeight = document.body.scrollHeight
       fn()
     }
@@ -212,10 +212,10 @@ const onResize = fn => {
 class SplitArticle {
   constructor (rawConfig) {
     this.config = merge({ width: 50 }, rawConfig)
-    
+
     // todo: test this
     console.log(getContentHeight(this.config.source))
-    
+
     onResize(() => {
       console.log('recalculation is needed')
     })

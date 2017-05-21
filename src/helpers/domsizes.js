@@ -39,6 +39,22 @@ const getContentHeight = element => {
   return element.scrollHeight - getPaddingTop(element) - getPaddingBottom(element) - removeThisToo
 }
 
+const getSpace = element => {
+  const space = document.createElement('span')
+  space.innerHTML = '&nbsp;'
+  
+  element.appendChild(space)
+  
+  const measure = {
+    height: space.scrollHeight,
+    width: space.scrollWidth
+  }
+  
+  element.removeChild(space)
+  
+  return measure
+}
+
 export {
   getComputedProperty,
   isOutpositioned,
@@ -49,5 +65,6 @@ export {
   getBorderTop,
   getBorderBottom,
   getMarginTop,
-  getMarginBottom
+  getMarginBottom,
+  getSpace
 }

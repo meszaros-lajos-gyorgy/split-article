@@ -2744,6 +2744,127 @@ var ifElse = _curry3(function ifElse(condition, onTrue, onFalse) {
  */
 var __ = {'@@functional/placeholder': true};
 
+/**
+ * Makes a shallow clone of an object, setting or overriding the specified
+ * property with the given value. Note that this copies and flattens prototype
+ * properties onto the new object as well. All non-primitive properties are
+ * copied by reference.
+ *
+ * @func
+ * @memberOf R
+ * @since v0.8.0
+ * @category Object
+ * @sig String -> a -> {k: v} -> {k: v}
+ * @param {String} prop The property name to set
+ * @param {*} val The new value
+ * @param {Object} obj The object to clone
+ * @return {Object} A new object equivalent to the original except for the changed property.
+ * @see R.dissoc
+ * @example
+ *
+ *      R.assoc('c', 3, {a: 1, b: 2}); //=> {a: 1, b: 2, c: 3}
+ */
+var assoc = _curry3(function assoc(prop, val, obj) {
+  var result = {};
+  for (var p in obj) {
+    result[p] = obj[p];
+  }
+  result[prop] = val;
+  return result;
+});
+
+/**
+ * Returns `true` if the specified value is equal, in `R.equals` terms, to at
+ * least one element of the given list; `false` otherwise.
+ *
+ * @func
+ * @memberOf R
+ * @since v0.1.0
+ * @category List
+ * @sig a -> [a] -> Boolean
+ * @param {Object} a The item to compare against.
+ * @param {Array} list The array to consider.
+ * @return {Boolean} `true` if an equivalent item is in the list, `false` otherwise.
+ * @see R.any
+ * @example
+ *
+ *      R.contains(3, [1, 2, 3]); //=> true
+ *      R.contains(4, [1, 2, 3]); //=> false
+ *      R.contains({ name: 'Fred' }, [{ name: 'Fred' }]); //=> true
+ *      R.contains([42], [[42]]); //=> true
+ */
+var contains = _curry2(_contains);
+
+/**
+ * A function that returns the `!` of its argument. It will return `true` when
+ * passed false-y value, and `false` when passed a truth-y one.
+ *
+ * @func
+ * @memberOf R
+ * @since v0.1.0
+ * @category Logic
+ * @sig * -> Boolean
+ * @param {*} a any value
+ * @return {Boolean} the logical inverse of passed argument.
+ * @see R.complement
+ * @example
+ *
+ *      R.not(true); //=> false
+ *      R.not(false); //=> true
+ *      R.not(0); //=> true
+ *      R.not(1); //=> false
+ */
+var not = _curry1(function not(a) {
+  return !a;
+});
+
+var getComputedProperty = curry(function (property, element) { return window.getComputedStyle(element).getPropertyValue(property); });
+
+var getPaddingTop = compose(parseFloat, getComputedProperty('padding-top'));
+var getPaddingBottom = compose(parseFloat, getComputedProperty('padding-bottom'));
+var getBorderTop = compose(parseFloat, getComputedProperty('border-top-width'));
+var getBorderBottom = compose(parseFloat, getComputedProperty('border-bottom-width'));
+var getMarginTop = compose(parseFloat, getComputedProperty('margin-top'));
+var getMarginBottom = compose(parseFloat, getComputedProperty('margin-bottom'));
+
+// todo: can we move element out to the end?
+var isOutpositioned = function (element) { return contains(getComputedProperty('position', element), ['absolute', 'fixed']); };
+var isFloating = function (element) { return not(equals('none', getComputedProperty('float', element))); };
+
+var getContentHeight = function (element) {
+  var removeThisToo = 0;
+
+  if (isOutpositioned(element) || isFloating(element)) {
+    removeThisToo += getMarginTop(head(element.children));
+    removeThisToo += getMarginBottom(last(element.children));
+  } else {
+    if (getBorderTop(element)) {
+      removeThisToo += getMarginTop(head(element.children));
+    }
+    if (getBorderBottom(element)) {
+      removeThisToo += getMarginBottom(last(element.children));
+    }
+  }
+
+  return element.scrollHeight - getPaddingTop(element) - getPaddingBottom(element) - removeThisToo
+};
+
+var getSpace = function (element) {
+  var space = document.createElement('span');
+  space.innerHTML = '&nbsp;';
+  
+  element.appendChild(space);
+  
+  var measure = {
+    height: space.scrollHeight,
+    width: space.scrollWidth
+  };
+  
+  element.removeChild(space);
+  
+  return measure
+};
+
 // http://stackoverflow.com/a/27078401/1806628
 function throttle(func, wait, options) {
   if ( options === void 0 ) options = {};
@@ -2806,12 +2927,6 @@ var onResize = function (fn) {
   }));
 };
 
-/*
-import {
-  getContentHeight
-} from './helpers/domsizes'
-*/
-
 var DEFAULT_CONFIG = {
   width: 50
 };
@@ -2847,19 +2962,11 @@ var renderWord = function (ref) {
 
 var getWordWidths = curry(function (child, paragraph) {
   // todo: rendering should go to a separate function
-  child.innerHTML = join(' ', map(renderWord, paragraph)) + '<span class="space">&nbsp;</span>';
+  child.innerHTML = join(' ', map(renderWord, paragraph));
 
-  var space = child.querySelector('.space');
-  var spaceWidth = space.scrollWidth;
-  // const spaceHeight = space.scrollHeight
-
-  space.parentNode.removeChild(space);
-
-  return {
-    // spaceHeight: spaceHeight,
-    spaceWidth: spaceWidth,
+  return assoc({
     wordWidths: addIndex(map)(function (node, index) { return [index, node.scrollWidth]; }, Array.from(child.children))
-  }
+  }, getSpace(child))
 });
 
 var calculateWidth = function (line, spaceWidth) { return add(sum(pluck(1, line)), multiply(spaceWidth, inc(length(line)))); };
@@ -2916,9 +3023,10 @@ var sliceContentVertically = function (child, cuttingPoint) {
   container.appendChild(topHalf);
 
   var ref = converge(getWordWidths, [identity, compose(splitToWords, getInnerHtml)])(topHalf);
-  var spaceWidth = ref.spaceWidth;
+  var width = ref.width;
+  var height = ref.height;
   var wordWidths = ref.wordWidths;
-  var indexesPerLine = reduce(sortIntoLines(containerWidth, spaceWidth), [], wordWidths);
+  var indexesPerLine = reduce(sortIntoLines(containerWidth, width), [], wordWidths);
   var childrenPerLine = map(function (line) { return map(function (index) { return topHalf.children[index]; }, pluck(0, line)); }, indexesPerLine);
   var slicedChildrenPerLine = map(compose(splitToWords, join(' '), map(getOuterHtml)), childrenPerLine);
 
@@ -2958,7 +3066,7 @@ var sliceContentVertically = function (child, cuttingPoint) {
     return append(join(' ', line), lines)
   }, [], mergedChildrenPerLine);
 
-  var cutAfterLineNo = 2;
+  var cutAfterLineNo = Math.floor(cuttingPoint / height);
 
   topHalf.innerHTML = join(' ', slice(0, cutAfterLineNo, lines));
   bottomHalf.innerHTML = join(' ', drop(cutAfterLineNo, lines));
@@ -2966,7 +3074,11 @@ var sliceContentVertically = function (child, cuttingPoint) {
   container.removeChild(topHalf);
 
   topHalf.style.marginBottom = 0;
+  topHalf.style.paddingBottom = 0;
+  topHalf.style.borderBottomWidth = 0;
   bottomHalf.style.marginTop = 0;
+  bottomHalf.style.paddingTop = 0;
+  bottomHalf.style.borderTopWidth = 0;
 
   return [topHalf, bottomHalf]
 };
@@ -3001,6 +3113,12 @@ var addColumn = function (container, width) {
   return col
 };
 
+var checkMinimalFit = function (element, remainingSpaceWithoutMargin, lastMarginBottom) {
+  var margin = Math.max(getMarginTop(element), lastMarginBottom);
+  var lineHeight = getSpace(element).height;
+  return remainingSpaceWithoutMargin >= margin + getPaddingTop(element) + getBorderTop(element) + lineHeight
+};
+
 function splitArticle (rawConfig) {
   var config = merge(DEFAULT_CONFIG, rawConfig);
   hide(config.source);
@@ -3019,8 +3137,26 @@ function splitArticle (rawConfig) {
 
   // --------------------
 
+  // feladat: mi fér bele a target első oszlopába?
+
+  // az első beillesztett child elem margin-top-ját le kell venni
+  // az utolsó beillesztett child elem margin-bottom-ját le kell venni, ha nincs még szétvágva
+
+  var children = Array.from(config.source.children);
+
+  // getContentHeight,
+  // getPaddingTop,
+  // getPaddingBottom,
+  // getBorderTop,
+  // getBorderBottom,
+  // getMarginTop,
+  // getMarginBottom
+
+  console.log(checkMinimalFit(children[0], getContentHeight(config.targets[0]), 0));
+
+  // --------------------
+
   /*
-  const children = Array.from(config.source.children)
   const containerContents = []
 
   let i = 0

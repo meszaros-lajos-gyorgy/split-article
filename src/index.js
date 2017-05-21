@@ -39,14 +39,20 @@ import {
   concat,
   slice,
   ifElse,
-  __
+  __,
+  assoc
 } from 'ramda'
 
-/*
 import {
-  getContentHeight
+  getContentHeight,
+  getPaddingTop,
+  // getPaddingBottom,
+  getBorderTop,
+  // getBorderBottom,
+  getMarginTop,
+  // getMarginBottom,
+  getSpace
 } from './helpers/domsizes'
-*/
 
 import onResize from './helpers/onResize'
 
@@ -79,19 +85,11 @@ const renderWord = ([openingTags, content, closingTags]) => join('', openingTags
 
 const getWordWidths = curry((child, paragraph) => {
   // todo: rendering should go to a separate function
-  child.innerHTML = join(' ', map(renderWord, paragraph)) + '<span class="space">&nbsp;</span>'
+  child.innerHTML = join(' ', map(renderWord, paragraph))
 
-  const space = child.querySelector('.space')
-  const spaceWidth = space.scrollWidth
-  // const spaceHeight = space.scrollHeight
-
-  space.parentNode.removeChild(space)
-
-  return {
-    // spaceHeight: spaceHeight,
-    spaceWidth: spaceWidth,
+  return assoc({
     wordWidths: addIndex(map)((node, index) => [index, node.scrollWidth], Array.from(child.children))
-  }
+  }, getSpace(child))
 })
 
 const calculateWidth = (line, spaceWidth) => add(sum(pluck(1, line)), multiply(spaceWidth, inc(length(line))))
@@ -142,8 +140,8 @@ const sliceContentVertically = (child, cuttingPoint) => {
 
   container.appendChild(topHalf)
 
-  const {spaceWidth/*, spaceHeight */, wordWidths} = converge(getWordWidths, [identity, compose(splitToWords, getInnerHtml)])(topHalf)
-  const indexesPerLine = reduce(sortIntoLines(containerWidth, spaceWidth), [], wordWidths)
+  const {width, height, wordWidths} = converge(getWordWidths, [identity, compose(splitToWords, getInnerHtml)])(topHalf)
+  const indexesPerLine = reduce(sortIntoLines(containerWidth, width), [], wordWidths)
   const childrenPerLine = map(line => map(index => topHalf.children[index], pluck(0, line)), indexesPerLine)
   const slicedChildrenPerLine = map(compose(splitToWords, join(' '), map(getOuterHtml)), childrenPerLine)
 
@@ -177,7 +175,7 @@ const sliceContentVertically = (child, cuttingPoint) => {
     return append(join(' ', line), lines)
   }, [], mergedChildrenPerLine)
 
-  const cutAfterLineNo = 2
+  const cutAfterLineNo = Math.floor(cuttingPoint / height)
 
   topHalf.innerHTML = join(' ', slice(0, cutAfterLineNo, lines))
   bottomHalf.innerHTML = join(' ', drop(cutAfterLineNo, lines))
@@ -185,7 +183,11 @@ const sliceContentVertically = (child, cuttingPoint) => {
   container.removeChild(topHalf)
 
   topHalf.style.marginBottom = 0
+  topHalf.style.paddingBottom = 0
+  topHalf.style.borderBottomWidth = 0
   bottomHalf.style.marginTop = 0
+  bottomHalf.style.paddingTop = 0
+  bottomHalf.style.borderTopWidth = 0
 
   return [topHalf, bottomHalf]
 }
@@ -220,6 +222,12 @@ const addColumn = (container, width) => {
   return col
 }
 
+const checkMinimalFit = (element, remainingSpaceWithoutMargin, lastMarginBottom) => {
+  const margin = Math.max(getMarginTop(element), lastMarginBottom)
+  const lineHeight = getSpace(element).height
+  return remainingSpaceWithoutMargin >= margin + getPaddingTop(element) + getBorderTop(element) + lineHeight
+}
+
 function splitArticle (rawConfig) {
   const config = merge(DEFAULT_CONFIG, rawConfig)
   hide(config.source)
@@ -238,8 +246,26 @@ function splitArticle (rawConfig) {
 
   // --------------------
 
-  /*
+  // feladat: mi fér bele a target első oszlopába?
+
+  // az első beillesztett child elem margin-top-ját le kell venni
+  // az utolsó beillesztett child elem margin-bottom-ját le kell venni, ha nincs még szétvágva
+
   const children = Array.from(config.source.children)
+
+  // getContentHeight,
+  // getPaddingTop,
+  // getPaddingBottom,
+  // getBorderTop,
+  // getBorderBottom,
+  // getMarginTop,
+  // getMarginBottom
+
+  console.log(checkMinimalFit(children[0], getContentHeight(config.targets[0]), 0))
+
+  // --------------------
+
+  /*
   const containerContents = []
 
   let i = 0

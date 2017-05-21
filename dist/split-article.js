@@ -1,4 +1,4 @@
-// split-article - created by Lajos Meszaros <m_lajos@hotmail.com> - MIT licence - last built on 2017-05-21
+// split-article - created by Lajos Meszaros <m_lajos@hotmail.com> - MIT licence - last built on 2017-05-22
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define(factory) :
@@ -3145,24 +3145,17 @@ function splitArticle (rawConfig) {
 
   forEach(function (target) { target.innerHTML = ''; }, config.targets);
 
+  var children = Array.from(config.source.children);
+
   // --------------------
+
+  // contents > targets > columns > children
+  var contents = [[[]]];
 
   var slices = sliceContentVertically(config.source.children[0], 100);
 
   addColumn(config.targets[0], measuredWidth).appendChild(slices[0]);
   addColumn(config.targets[1], measuredWidth).appendChild(slices[1]);
-
-  // --------------------
-
-  // az első beillesztett child elem margin-top-ját le kell venni
-  // az utolsó beillesztett child elem margin-bottom-ját le kell venni, ha nincs még szétvágva
-
-  var children = Array.from(config.source.children);
-  var contents = [
-    [ // first placeholder
-      [] // first column
-    ]
-  ];
 
   console.log(
     checkMinimalFit(
@@ -3179,32 +3172,63 @@ function splitArticle (rawConfig) {
 
   // --------------------
 
-  /*
-  const containerContents = []
+  var currentChildIndex = 0;
+  var currentContainerIndex = 0;
 
-  let i = 0
+  addColumn(config.targets[currentContainerIndex]);
 
-  const latestContainer = 0
+  var getSizes = map(function (child) { return [
+    getMarginTop(child),
+    getBorderTop(child) + getPaddingTop(child) + getContentHeight(child) + getPaddingBottom(child) + getBorderBottom(child),
+    getMarginBottom(child)
+  ]; });
 
-  const remainingSpaceInFirstContainer = () => firstContainer.scrollHeight - contentsForFirstContainer.map(content => content.scrollHeight).reduce((a, b) => a + b, 0)
+  // todo: change this to reduce for children
+  while (true) {
+    // let currentChild = children[currentChildIndex]
+    var currentContainer = config.targets[currentContainerIndex];
+    var currentColumn = last(currentContainer);
 
-  while(true){
-    let remainingSpace = remainingSpaceInFirstContainer()
-    let currentChild = children[i]
+    // const remainingSpaceInFirstContainer = () => firstContainer.scrollHeight - contentsForFirstContainer.map(content => content.scrollHeight).reduce((a, b) => a + b, 0)
+    var remainingSpace = getContentHeight(currentColumn) -
+      compose(
+        // todo: adjust last(total[1])[1] to be 0
+        reduce(function (total, ref) {
+          var marginTop = ref[0];
+          var height = ref[1];
+          var marginBottom = ref[2];
 
-    console.log('paragraph [' + i + '] size:', currentChild.scrollHeight, '| remaining space in 1st container:', remainingSpace)
+          total[0] += height;
 
-    if(currentChild.scrollHeight < remainingSpace){
-      console.log('fits into first container')
-      contentsForFirstContainer.push(currentChild)
-    }else{
-      console.error('doesn\'t fit, need to slice')
-      verticalSlice(currentChild, remainingSpace)
+          if (length(total[1])) {
+            total[1].push([marginTop, marginBottom]);
+          } else {
+            total[1].push([0, marginBottom]);
+          }
 
+          return total
+        }, [0, []]),
+        getSizes
+      )(currentColumn.children);
+
+    console.log(remainingSpace);
+
+    currentChildIndex++;
+
+    if (currentChildIndex > length(children) - 1) {
       break
     }
+  }
 
-    i++
+  /*
+  if(currentChild.scrollHeight < remainingSpace){
+    console.log('fits into first container')
+    contentsForFirstContainer.push(currentChild)
+  }else{
+    console.error('doesn\'t fit, need to slice')
+    verticalSlice(currentChild, remainingSpace)
+
+    break
   }
   */
 

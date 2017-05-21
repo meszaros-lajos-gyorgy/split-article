@@ -254,24 +254,17 @@ function splitArticle (rawConfig) {
 
   forEach(target => { target.innerHTML = '' }, config.targets)
 
+  const children = Array.from(config.source.children)
+
   // --------------------
+
+  // contents > targets > columns > children
+  const contents = [[[]]]
 
   const slices = sliceContentVertically(config.source.children[0], 100)
 
   addColumn(config.targets[0], measuredWidth).appendChild(slices[0])
   addColumn(config.targets[1], measuredWidth).appendChild(slices[1])
-
-  // --------------------
-
-  // az első beillesztett child elem margin-top-ját le kell venni
-  // az utolsó beillesztett child elem margin-bottom-ját le kell venni, ha nincs még szétvágva
-
-  const children = Array.from(config.source.children)
-  const contents = [
-    [ // first placeholder
-      [] // first column
-    ]
-  ]
 
   console.log(
     checkMinimalFit(
@@ -288,32 +281,59 @@ function splitArticle (rawConfig) {
 
   // --------------------
 
-  /*
-  const containerContents = []
+  let currentChildIndex = 0
+  let currentContainerIndex = 0
 
-  let i = 0
+  addColumn(config.targets[currentContainerIndex])
 
-  const latestContainer = 0
+  const getSizes = map(child => [
+    getMarginTop(child),
+    getBorderTop(child) + getPaddingTop(child) + getContentHeight(child) + getPaddingBottom(child) + getBorderBottom(child),
+    getMarginBottom(child)
+  ])
 
-  const remainingSpaceInFirstContainer = () => firstContainer.scrollHeight - contentsForFirstContainer.map(content => content.scrollHeight).reduce((a, b) => a + b, 0)
+  // todo: change this to reduce for children
+  while (true) {
+    // let currentChild = children[currentChildIndex]
+    let currentContainer = config.targets[currentContainerIndex]
+    let currentColumn = last(currentContainer)
 
-  while(true){
-    let remainingSpace = remainingSpaceInFirstContainer()
-    let currentChild = children[i]
+    // const remainingSpaceInFirstContainer = () => firstContainer.scrollHeight - contentsForFirstContainer.map(content => content.scrollHeight).reduce((a, b) => a + b, 0)
+    let remainingSpace = getContentHeight(currentColumn) -
+      compose(
+        // todo: adjust last(total[1])[1] to be 0
+        reduce((total, [marginTop, height, marginBottom]) => {
+          total[0] += height
 
-    console.log('paragraph [' + i + '] size:', currentChild.scrollHeight, '| remaining space in 1st container:', remainingSpace)
+          if (length(total[1])) {
+            total[1].push([marginTop, marginBottom])
+          } else {
+            total[1].push([0, marginBottom])
+          }
 
-    if(currentChild.scrollHeight < remainingSpace){
-      console.log('fits into first container')
-      contentsForFirstContainer.push(currentChild)
-    }else{
-      console.error('doesn\'t fit, need to slice')
-      verticalSlice(currentChild, remainingSpace)
+          return total
+        }, [0, []]),
+        getSizes
+      )(currentColumn.children)
 
+    console.log(remainingSpace)
+
+    currentChildIndex++
+
+    if (currentChildIndex > length(children) - 1) {
       break
     }
+  }
 
-    i++
+  /*
+  if(currentChild.scrollHeight < remainingSpace){
+    console.log('fits into first container')
+    contentsForFirstContainer.push(currentChild)
+  }else{
+    console.error('doesn\'t fit, need to slice')
+    verticalSlice(currentChild, remainingSpace)
+
+    break
   }
   */
 

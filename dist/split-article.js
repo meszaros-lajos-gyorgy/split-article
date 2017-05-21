@@ -2964,9 +2964,11 @@ var getWordWidths = curry(function (child, paragraph) {
   // todo: rendering should go to a separate function
   child.innerHTML = join(' ', map(renderWord, paragraph));
 
-  return assoc({
-    wordWidths: addIndex(map)(function (node, index) { return [index, node.scrollWidth]; }, Array.from(child.children))
-  }, getSpace(child))
+  return assoc(
+    'wordWidths',
+    addIndex(map)(function (node, index) { return [index, node.scrollWidth]; }, Array.from(child.children)),
+    getSpace(child)
+  )
 });
 
 var calculateWidth = function (line, spaceWidth) { return add(sum(pluck(1, line)), multiply(spaceWidth, inc(length(line)))); };
@@ -3116,7 +3118,22 @@ var addColumn = function (container, width) {
 var checkMinimalFit = function (element, remainingSpaceWithoutMargin, lastMarginBottom) {
   var margin = Math.max(getMarginTop(element), lastMarginBottom);
   var lineHeight = getSpace(element).height;
-  return remainingSpaceWithoutMargin >= margin + getPaddingTop(element) + getBorderTop(element) + lineHeight
+  return remainingSpaceWithoutMargin >=
+    margin +
+    getBorderTop(element) +
+    getPaddingTop(element) +
+    lineHeight
+};
+
+var checkFullFit = function (element, remainingSpaceWithoutMargin, lastMarginBottom) {
+  var margin = Math.max(getMarginTop(element), lastMarginBottom);
+  return remainingSpaceWithoutMargin >=
+    margin +
+    getBorderTop(element) +
+    getPaddingTop(element) +
+    getContentHeight(element) +
+    getPaddingBottom(element) +
+    getBorderBottom(element)
 };
 
 function splitArticle (rawConfig) {
@@ -3137,22 +3154,28 @@ function splitArticle (rawConfig) {
 
   // --------------------
 
-  // feladat: mi fér bele a target első oszlopába?
-
   // az első beillesztett child elem margin-top-ját le kell venni
   // az utolsó beillesztett child elem margin-bottom-ját le kell venni, ha nincs még szétvágva
 
   var children = Array.from(config.source.children);
+  var contents = [
+    [ // first placeholder
+      [] // first column
+    ]
+  ];
 
-  // getContentHeight,
-  // getPaddingTop,
-  // getPaddingBottom,
-  // getBorderTop,
-  // getBorderBottom,
-  // getMarginTop,
-  // getMarginBottom
-
-  console.log(checkMinimalFit(children[0], getContentHeight(config.targets[0]), 0));
+  console.log(
+    checkMinimalFit(
+      children[0],
+      getContentHeight(config.targets[0]),
+      length(contents[0][0]) ? getMarginBottom(last(contents[0][0])) : 0
+    ),
+    checkFullFit(
+      children[0],
+      getContentHeight(config.targets[0]),
+      length(contents[0][0]) ? getMarginBottom(last(contents[0][0])) : 0
+    )
+  );
 
   // --------------------
 

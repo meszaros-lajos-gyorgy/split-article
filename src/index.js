@@ -46,11 +46,11 @@ import {
 import {
   getContentHeight,
   getPaddingTop,
-  // getPaddingBottom,
+  getPaddingBottom,
   getBorderTop,
-  // getBorderBottom,
+  getBorderBottom,
   getMarginTop,
-  // getMarginBottom,
+  getMarginBottom,
   getSpace
 } from './helpers/domsizes'
 
@@ -87,9 +87,11 @@ const getWordWidths = curry((child, paragraph) => {
   // todo: rendering should go to a separate function
   child.innerHTML = join(' ', map(renderWord, paragraph))
 
-  return assoc({
-    wordWidths: addIndex(map)((node, index) => [index, node.scrollWidth], Array.from(child.children))
-  }, getSpace(child))
+  return assoc(
+    'wordWidths',
+    addIndex(map)((node, index) => [index, node.scrollWidth], Array.from(child.children)),
+    getSpace(child)
+  )
 })
 
 const calculateWidth = (line, spaceWidth) => add(sum(pluck(1, line)), multiply(spaceWidth, inc(length(line))))
@@ -225,7 +227,22 @@ const addColumn = (container, width) => {
 const checkMinimalFit = (element, remainingSpaceWithoutMargin, lastMarginBottom) => {
   const margin = Math.max(getMarginTop(element), lastMarginBottom)
   const lineHeight = getSpace(element).height
-  return remainingSpaceWithoutMargin >= margin + getPaddingTop(element) + getBorderTop(element) + lineHeight
+  return remainingSpaceWithoutMargin >=
+    margin +
+    getBorderTop(element) +
+    getPaddingTop(element) +
+    lineHeight
+}
+
+const checkFullFit = (element, remainingSpaceWithoutMargin, lastMarginBottom) => {
+  const margin = Math.max(getMarginTop(element), lastMarginBottom)
+  return remainingSpaceWithoutMargin >=
+    margin +
+    getBorderTop(element) +
+    getPaddingTop(element) +
+    getContentHeight(element) +
+    getPaddingBottom(element) +
+    getBorderBottom(element)
 }
 
 function splitArticle (rawConfig) {
@@ -246,22 +263,28 @@ function splitArticle (rawConfig) {
 
   // --------------------
 
-  // feladat: mi fér bele a target első oszlopába?
-
   // az első beillesztett child elem margin-top-ját le kell venni
   // az utolsó beillesztett child elem margin-bottom-ját le kell venni, ha nincs még szétvágva
 
   const children = Array.from(config.source.children)
+  const contents = [
+    [ // first placeholder
+      [] // first column
+    ]
+  ]
 
-  // getContentHeight,
-  // getPaddingTop,
-  // getPaddingBottom,
-  // getBorderTop,
-  // getBorderBottom,
-  // getMarginTop,
-  // getMarginBottom
-
-  console.log(checkMinimalFit(children[0], getContentHeight(config.targets[0]), 0))
+  console.log(
+    checkMinimalFit(
+      children[0],
+      getContentHeight(config.targets[0]),
+      length(contents[0][0]) ? getMarginBottom(last(contents[0][0])) : 0
+    ),
+    checkFullFit(
+      children[0],
+      getContentHeight(config.targets[0]),
+      length(contents[0][0]) ? getMarginBottom(last(contents[0][0])) : 0
+    )
+  )
 
   // --------------------
 

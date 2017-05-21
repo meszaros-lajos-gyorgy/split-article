@@ -136,6 +136,7 @@ const commonItemsLeft = (left, right, cachedMatches) => {
 
 const sliceContentVertically = (child, cuttingPoint) => {
   const topHalf = child.cloneNode(true)
+  const bottomHalf = topHalf.cloneNode(true)
   const container = child.parentNode
   const containerWidth = child.scrollWidth
 
@@ -176,11 +177,10 @@ const sliceContentVertically = (child, cuttingPoint) => {
     return append(join(' ', line), lines)
   }, [], mergedChildrenPerLine)
 
-  topHalf.innerHTML = join(' ', lines)
+  const cutAfterLineNo = 2
 
-  // const cutAfterLineNo = 2
-
-  const bottomHalf = topHalf.cloneNode(true)
+  topHalf.innerHTML = join(' ', slice(0, cutAfterLineNo, lines))
+  bottomHalf.innerHTML = join(' ', drop(cutAfterLineNo, lines))
 
   container.removeChild(topHalf)
 

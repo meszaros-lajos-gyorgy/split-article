@@ -2909,6 +2909,7 @@ var commonItemsLeft = function (left, right, cachedMatches) {
 
 var sliceContentVertically = function (child, cuttingPoint) {
   var topHalf = child.cloneNode(true);
+  var bottomHalf = topHalf.cloneNode(true);
   var container = child.parentNode;
   var containerWidth = child.scrollWidth;
 
@@ -2957,11 +2958,10 @@ var sliceContentVertically = function (child, cuttingPoint) {
     return append(join(' ', line), lines)
   }, [], mergedChildrenPerLine);
 
-  topHalf.innerHTML = join(' ', lines);
+  var cutAfterLineNo = 2;
 
-  // const cutAfterLineNo = 2
-
-  var bottomHalf = topHalf.cloneNode(true);
+  topHalf.innerHTML = join(' ', slice(0, cutAfterLineNo, lines));
+  bottomHalf.innerHTML = join(' ', drop(cutAfterLineNo, lines));
 
   container.removeChild(topHalf);
 

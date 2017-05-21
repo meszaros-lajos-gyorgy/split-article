@@ -1,34 +1,52 @@
 import {
-  // clone,
-  // replace,
-  // reverse,
-  // curry,
-  // map,
-  // add,
-  // sum,
-  // multiply,
-  // inc,
-  // adjust,
-  // dec,
-  // length,
-  // when,
-  // either,
-  // isEmpty,
-  // last,
-  // append,
-  // converge,
-  // identity,
-  // reduce,
-  // addIndex,
+  clone,
+  replace,
+  reverse,
+  curry,
+  map,
+  add,
+  sum,
+  multiply,
+  inc,
+  adjust,
+  dec,
+  length,
+  when,
+  either,
+  isEmpty,
+  last,
+  append,
+  converge,
+  identity,
+  reduce,
+  addIndex,
   compose,
   join,
   repeat,
-  merge
+  merge,
+  forEach,
+  pluck,
+  nth,
+  zip,
+  findIndex,
+  equals,
+  of,
+  head,
+  tail,
+  drop,
+  dropLast,
+  gt,
+  concat,
+  slice,
+  ifElse,
+  __
 } from 'ramda'
 
+/*
 import {
-  // getContentHeight
+  getContentHeight
 } from './helpers/domsizes'
+*/
 
 import onResize from './helpers/onResize'
 
@@ -36,9 +54,8 @@ const DEFAULT_CONFIG = {
   width: 50
 }
 
-/*
-const splitToWords = curry(child => {
-  const elements = child.innerHTML.match(/(?:<[^>]+>|[^\r\n\t <]+)/g)
+const splitToWords = curry(htmlString => {
+  const elements = htmlString.match(/(?:<[^>]+>|[^\r\n\t <]+)/g)
   const tags = []
 
   return reduce((words, element) => {
@@ -57,32 +74,28 @@ const splitToWords = curry(child => {
     return words
   }, [], elements)
 })
-*/
 
-// const renderWord = ([openingTags, content, closingTags]) => join('', openingTags) + content + join('', closingTags)
+const renderWord = ([openingTags, content, closingTags]) => join('', openingTags) + content + join('', closingTags)
 
-/*
 const getWordWidths = curry((child, paragraph) => {
   // todo: rendering should go to a separate function
   child.innerHTML = join(' ', map(renderWord, paragraph)) + '<span class="space">&nbsp;</span>'
 
   const space = child.querySelector('.space')
   const spaceWidth = space.scrollWidth
-  const spaceHeight = space.scrollHeight
+  // const spaceHeight = space.scrollHeight
 
   space.parentNode.removeChild(space)
 
   return {
-    spaceHeight: spaceHeight,
+    // spaceHeight: spaceHeight,
     spaceWidth: spaceWidth,
     wordWidths: addIndex(map)((node, index) => [index, node.scrollWidth], Array.from(child.children))
   }
 })
-*/
 
-// const calculateWidth = (line, spaceWidth) => add(sum(line), multiply(spaceWidth, inc(length(line))))
+const calculateWidth = (line, spaceWidth) => add(sum(pluck(1, line)), multiply(spaceWidth, inc(length(line))))
 
-/*
 const sortIntoLines = (containerWidth, spaceWidth) => (lines, wordWidth) => compose(
   converge(
     adjust(append(wordWidth)),
@@ -94,31 +107,78 @@ const sortIntoLines = (containerWidth, spaceWidth) => (lines, wordWidth) => comp
   when(
     either(
       isEmpty,
-      () => calculateWidth(last(lines), spaceWidth) + wordWidth >= containerWidth
+      () => calculateWidth(last(lines), spaceWidth) + nth(1, wordWidth) >= containerWidth
     ),
     append([])
   )
 )(lines)
-*/
+
+const getInnerHtml = element => element.innerHTML
+const getOuterHtml = element => element.outerHTML
+
+const getMatchAmount = compose(
+  ifElse(
+    compose(equals(-1), nth(0)),
+    nth(1),
+    nth(0)
+  ),
+  adjust(findIndex(([a, b]) => a !== b), 0),
+  adjust(length, 1),
+  repeat(__, 2)
+)
+
+const commonItemsLeft = (left, right, cachedMatches) => {
+  const tagsOfRight = nth(0, right)
+  const common = zip(concat(cachedMatches, nth(0, left)), tagsOfRight)
+
+  return slice(0, getMatchAmount(common), tagsOfRight)
+}
 
 const sliceContentVertically = (child, cuttingPoint) => {
   const topHalf = child.cloneNode(true)
   const container = child.parentNode
-  // const containerWidth = child.scrollWidth
+  const containerWidth = child.scrollWidth
 
   container.appendChild(topHalf)
 
-  // const {spaceWidth, spaceHeight, wordWidths} = converge(getWordWidths, [identity, splitToWords])(topHalf)
-  // console.log(wordWidths)
+  const {spaceWidth/*, spaceHeight */, wordWidths} = converge(getWordWidths, [identity, compose(splitToWords, getInnerHtml)])(topHalf)
+  const indexesPerLine = reduce(sortIntoLines(containerWidth, spaceWidth), [], wordWidths)
+  const childrenPerLine = map(line => map(index => topHalf.children[index], pluck(0, line)), indexesPerLine)
+  const slicedChildrenPerLine = map(compose(splitToWords, join(' '), map(getOuterHtml)), childrenPerLine)
 
-  // !!! TODO: indexesPerLine should contain the indexes of each word
-  // it does now!
-  // const indexesPerLine = reduce(sortIntoLines(containerWidth, spaceWidth), [], wordWidths)
+  const mergedChildrenPerLine = map(
+    when(
+      line => gt(length(line), 1),
+      line => {
+        let cachedMatches = []
+
+        return reduce((merged, current) => {
+          cachedMatches = commonItemsLeft(last(merged), current, cachedMatches)
+
+          const commonAmount = length(cachedMatches)
+
+          merged = adjust(adjust(dropLast(commonAmount), 2), -1, merged)
+          current = adjust(drop(commonAmount), 0, current)
+
+          return append(current, merged)
+        }, of(head(line)), tail(line))
+      }
+    ),
+    slicedChildrenPerLine
+  )
+
+  const lines = reduce((lines, line) => {
+    line = reduce((children, [openingTags, word, closingTags]) => append(
+      join('', openingTags) + word + join('', closingTags),
+      children
+    ), [], line)
+
+    return append(join(' ', line), lines)
+  }, [], mergedChildrenPerLine)
+
+  topHalf.innerHTML = join(' ', lines)
 
   // const cutAfterLineNo = 2
-
-  // TODO: rejoin words into lines
-  // console.log(indexesPerLine, topHalf, getContentHeight(topHalf))
 
   const bottomHalf = topHalf.cloneNode(true)
 
@@ -166,6 +226,8 @@ function splitArticle (rawConfig) {
 
   const measuredWidth = getMeasurementWidth(config.source, config.width)
   config.source.style.width = measuredWidth + 'px'
+
+  forEach(target => { target.innerHTML = '' }, config.targets)
 
   // --------------------
 

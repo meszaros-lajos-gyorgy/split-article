@@ -1,6 +1,6 @@
 import throttle from './throttle'
 
-const onResize = fn => {
+const onResize = (fn, speed = 200) => {
   let previousPageHeight = document.body.clientHeight
 
   window.addEventListener('resize', throttle(() => {
@@ -8,7 +8,7 @@ const onResize = fn => {
       previousPageHeight = document.body.clientHeight
       fn()
     }
-  }, 200, {
+  }, speed, {
     trailing: true,
     leading: true
   }))

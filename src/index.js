@@ -376,7 +376,7 @@ function splitArticle (rawConfig) {
 
 splitArticle.watch = rawConfig => {
   splitArticle(rawConfig)
-  onResize(() => splitArticle(rawConfig))
+  onResize(() => splitArticle(rawConfig), rawConfig.speed)
 }
 
 export default splitArticle

@@ -2979,7 +2979,9 @@ function throttle(func, wait, options) {
   }
 }
 
-var onResize = function (fn) {
+var onResize = function (fn, speed) {
+  if ( speed === void 0 ) speed = 200;
+
   var previousPageHeight = document.body.clientHeight;
 
   window.addEventListener('resize', throttle(function () {
@@ -2987,7 +2989,7 @@ var onResize = function (fn) {
       previousPageHeight = document.body.clientHeight;
       fn();
     }
-  }, 200, {
+  }, speed, {
     trailing: true,
     leading: true
   }));
@@ -3336,7 +3338,7 @@ function splitArticle (rawConfig) {
 
 splitArticle.watch = function (rawConfig) {
   splitArticle(rawConfig);
-  onResize(function () { return splitArticle(rawConfig); });
+  onResize(function () { return splitArticle(rawConfig); }, rawConfig.speed);
 };
 
 return splitArticle;

@@ -2774,26 +2774,54 @@ var assoc = _curry3(function assoc(prop, val, obj) {
 });
 
 /**
- * Returns `true` if the specified value is equal, in `R.equals` terms, to at
- * least one element of the given list; `false` otherwise.
+ * `_makeFlat` is a helper function that returns a one-level or fully recursive
+ * function based on the flag passed in.
+ *
+ * @private
+ */
+var _makeFlat = function _makeFlat(recursive) {
+  return function flatt(list) {
+    var value, jlen, j;
+    var result = [];
+    var idx = 0;
+    var ilen = list.length;
+
+    while (idx < ilen) {
+      if (isArrayLike(list[idx])) {
+        value = recursive ? flatt(list[idx]) : list[idx];
+        j = 0;
+        jlen = value.length;
+        while (j < jlen) {
+          result[result.length] = value[j];
+          j += 1;
+        }
+      } else {
+        result[result.length] = list[idx];
+      }
+      idx += 1;
+    }
+    return result;
+  };
+};
+
+/**
+ * Returns a new list by pulling every item out of it (and all its sub-arrays)
+ * and putting them in a new array, depth-first.
  *
  * @func
  * @memberOf R
  * @since v0.1.0
  * @category List
- * @sig a -> [a] -> Boolean
- * @param {Object} a The item to compare against.
+ * @sig [a] -> [b]
  * @param {Array} list The array to consider.
- * @return {Boolean} `true` if an equivalent item is in the list, `false` otherwise.
- * @see R.any
+ * @return {Array} The flattened list.
+ * @see R.unnest
  * @example
  *
- *      R.contains(3, [1, 2, 3]); //=> true
- *      R.contains(4, [1, 2, 3]); //=> false
- *      R.contains({ name: 'Fred' }, [{ name: 'Fred' }]); //=> true
- *      R.contains([42], [[42]]); //=> true
+ *      R.flatten([1, 2, [3, 4], 5, [6, [7, 8, [9, [10, 11], 12]]]]);
+ *      //=> [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
  */
-var contains = _curry2(_contains);
+var flatten = _curry1(_makeFlat(true));
 
 /**
  * A function that returns the `!` of its argument. It will return `true` when
@@ -2817,6 +2845,52 @@ var contains = _curry2(_contains);
 var not = _curry1(function not(a) {
   return !a;
 });
+
+/**
+ * Applies function `fn` to the argument list `args`. This is useful for
+ * creating a fixed-arity function from a variadic function. `fn` should be a
+ * bound function if context is significant.
+ *
+ * @func
+ * @memberOf R
+ * @since v0.7.0
+ * @category Function
+ * @sig (*... -> a) -> [*] -> a
+ * @param {Function} fn The function which will be called with `args`
+ * @param {Array} args The arguments to call `fn` with
+ * @return {*} result The result, equivalent to `fn(...args)`
+ * @see R.call, R.unapply
+ * @example
+ *
+ *      var nums = [1, 2, 3, -99, 42, 6, 7];
+ *      R.apply(Math.max, nums); //=> 42
+ * @symb R.apply(f, [a, b, c]) = f(a, b, c)
+ */
+var apply = _curry2(function apply(fn, args) {
+  return fn.apply(this, args);
+});
+
+/**
+ * Returns `true` if the specified value is equal, in `R.equals` terms, to at
+ * least one element of the given list; `false` otherwise.
+ *
+ * @func
+ * @memberOf R
+ * @since v0.1.0
+ * @category List
+ * @sig a -> [a] -> Boolean
+ * @param {Object} a The item to compare against.
+ * @param {Array} list The array to consider.
+ * @return {Boolean} `true` if an equivalent item is in the list, `false` otherwise.
+ * @see R.any
+ * @example
+ *
+ *      R.contains(3, [1, 2, 3]); //=> true
+ *      R.contains(4, [1, 2, 3]); //=> false
+ *      R.contains({ name: 'Fred' }, [{ name: 'Fred' }]); //=> true
+ *      R.contains([42], [[42]]); //=> true
+ */
+var contains = _curry2(_contains);
 
 var getComputedProperty = curry(function (property, element) { return window.getComputedStyle(element).getPropertyValue(property); });
 
@@ -3136,6 +3210,16 @@ var checkFullFit = function (element, remainingSpaceWithoutMargin, lastMarginBot
     getBorderBottom(element)
 };
 
+var isEven = function (a) { return a % 2 === 0; };
+
+var makePairs = converge(
+  zip,
+  [
+    addIndex(filter)(function (el, index) { return isEven(index); }),
+    addIndex(filter)(function (el, index) { return not(isEven(index)); })
+  ]
+);
+
 function splitArticle (rawConfig) {
   var config = merge(DEFAULT_CONFIG, rawConfig);
   hide(config.source);
@@ -3175,7 +3259,11 @@ function splitArticle (rawConfig) {
   var currentChildIndex = 0;
   var currentContainerIndex = 0;
 
-  addColumn(config.targets[currentContainerIndex]);
+  // addColumn(config.targets[currentContainerIndex], measuredWidth)
+  var x = addColumn(config.targets[currentContainerIndex], measuredWidth);
+  x.appendChild(children[0]);
+  x.appendChild(children[1]);
+  x.appendChild(children[2]);
 
   var getSizes = map(function (child) { return [
     getMarginTop(child),
@@ -3187,35 +3275,31 @@ function splitArticle (rawConfig) {
   while (true) {
     // let currentChild = children[currentChildIndex]
     var currentContainer = config.targets[currentContainerIndex];
-    var currentColumn = last(currentContainer);
+    var currentColumn = last(Array.from(currentContainer.children));
 
-    // const remainingSpaceInFirstContainer = () => firstContainer.scrollHeight - contentsForFirstContainer.map(content => content.scrollHeight).reduce((a, b) => a + b, 0)
-    var remainingSpace = getContentHeight(currentColumn) -
-      compose(
-        // todo: adjust last(total[1])[1] to be 0
+    var remainingSpace = getContentHeight(currentColumn) - compose(
+        sum,
+        adjust(function (x) { return sum(map(
+          apply(max),
+          makePairs(slice(1, -1, flatten(x)))
+        )); }, 1),
         reduce(function (total, ref) {
           var marginTop = ref[0];
           var height = ref[1];
           var marginBottom = ref[2];
 
           total[0] += height;
-
-          if (length(total[1])) {
-            total[1].push([marginTop, marginBottom]);
-          } else {
-            total[1].push([0, marginBottom]);
-          }
-
+          total[1].push([marginTop, marginBottom]);
           return total
         }, [0, []]),
         getSizes
-      )(currentColumn.children);
+      )(Array.from(currentColumn.children));
 
     console.log(remainingSpace);
 
     currentChildIndex++;
 
-    if (currentChildIndex > length(children) - 1) {
+    if (currentChildIndex > length(children) - 1 || currentChildIndex === 10) {
       break
     }
   }

@@ -40,7 +40,12 @@ import {
   slice,
   ifElse,
   __,
-  assoc
+  assoc,
+  flatten,
+  filter,
+  not,
+  apply,
+  max
 } from 'ramda'
 
 import {
@@ -245,6 +250,16 @@ const checkFullFit = (element, remainingSpaceWithoutMargin, lastMarginBottom) =>
     getBorderBottom(element)
 }
 
+const isEven = a => a % 2 === 0
+
+const makePairs = converge(
+  zip,
+  [
+    addIndex(filter)((el, index) => isEven(index)),
+    addIndex(filter)((el, index) => not(isEven(index)))
+  ]
+)
+
 function splitArticle (rawConfig) {
   const config = merge(DEFAULT_CONFIG, rawConfig)
   hide(config.source)
@@ -284,7 +299,11 @@ function splitArticle (rawConfig) {
   let currentChildIndex = 0
   let currentContainerIndex = 0
 
-  addColumn(config.targets[currentContainerIndex])
+  // addColumn(config.targets[currentContainerIndex], measuredWidth)
+  let x = addColumn(config.targets[currentContainerIndex], measuredWidth)
+  x.appendChild(children[0])
+  x.appendChild(children[1])
+  x.appendChild(children[2])
 
   const getSizes = map(child => [
     getMarginTop(child),
@@ -296,31 +315,27 @@ function splitArticle (rawConfig) {
   while (true) {
     // let currentChild = children[currentChildIndex]
     let currentContainer = config.targets[currentContainerIndex]
-    let currentColumn = last(currentContainer)
+    let currentColumn = last(Array.from(currentContainer.children))
 
-    // const remainingSpaceInFirstContainer = () => firstContainer.scrollHeight - contentsForFirstContainer.map(content => content.scrollHeight).reduce((a, b) => a + b, 0)
-    let remainingSpace = getContentHeight(currentColumn) -
-      compose(
-        // todo: adjust last(total[1])[1] to be 0
+    let remainingSpace = getContentHeight(currentColumn) - compose(
+        sum,
+        adjust(x => sum(map(
+          apply(max),
+          makePairs(slice(1, -1, flatten(x)))
+        )), 1),
         reduce((total, [marginTop, height, marginBottom]) => {
           total[0] += height
-
-          if (length(total[1])) {
-            total[1].push([marginTop, marginBottom])
-          } else {
-            total[1].push([0, marginBottom])
-          }
-
+          total[1].push([marginTop, marginBottom])
           return total
         }, [0, []]),
         getSizes
-      )(currentColumn.children)
+      )(Array.from(currentColumn.children))
 
     console.log(remainingSpace)
 
     currentChildIndex++
 
-    if (currentChildIndex > length(children) - 1) {
+    if (currentChildIndex > length(children) - 1 || currentChildIndex === 10) {
       break
     }
   }

@@ -10,7 +10,7 @@ const onResize = fn => {
     }
   }, 200, {
     trailing: true,
-    leading: false
+    leading: true
   }))
 }
 

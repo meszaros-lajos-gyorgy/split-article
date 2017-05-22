@@ -148,6 +148,7 @@ const sliceContentVertically = (child, cuttingPoint) => {
   container.appendChild(topHalf)
 
   const {width, height, wordWidths} = converge(getWordWidths, [identity, compose(splitToWords, getInnerHtml)])(topHalf)
+  console.log(topHalf, height)
   const indexesPerLine = reduce(sortIntoLines(containerWidth, width), [], wordWidths)
   const childrenPerLine = map(line => map(index => topHalf.children[index], pluck(0, line)), indexesPerLine)
   const slicedChildrenPerLine = map(compose(splitToWords, join(' '), map(getOuterHtml)), childrenPerLine)
@@ -199,10 +200,6 @@ const sliceContentVertically = (child, cuttingPoint) => {
   return [topHalf, bottomHalf]
 }
 
-const hide = element => {
-  element.style = 'height:0;position:absolute;overflow:hidden'
-}
-
 const generateMeasurementText = compose(join(''), repeat('a'))
 
 const getMeasurementWidth = (source, width) => {
@@ -219,7 +216,7 @@ const getMeasurementWidth = (source, width) => {
 
 const createColumn = (width) => {
   const col = document.createElement('div')
-  col.style = 'display:inline-block;height:100%;width:' + width + 'px'
+  col.style = 'display:inline-block;height:100%;vertical-align:top;width:' + width + 'px'
   return col
 }
 
@@ -260,99 +257,141 @@ const makePairs = converge(
   ]
 )
 
+const getArrayMaximum = reduce(max, -Infinity)
+
+const clearTargets = forEach(target => { target.innerHTML = '' })
+
+const currentTargetIndex = targets => {
+  const columns = map(target => Array.from(target.children))(targets)
+  const numberOfColumns = map(length, columns)
+  const mostColumnAmount = getArrayMaximum(numberOfColumns)
+
+  return (
+    mostColumnAmount !== 0
+    ? dec(findIndex(el => el < mostColumnAmount, numberOfColumns))
+    : -1
+  )
+}
+
+const currentTarget = targets => {
+  const currentIndex = currentTargetIndex(targets)
+  const columns = map(target => Array.from(target.children))(targets)
+
+  return (
+    currentIndex === -1
+    ? undefined
+    : last(columns[currentIndex])
+  )
+}
+
+const nextTarget = (targets, measuredWidth) => {
+  const currentIndex = currentTargetIndex(targets)
+  const nextIndex = currentIndex + 1
+  let target
+
+  if (currentIndex === -1 || nextIndex === length(targets) - 1) {
+    target = addColumn(targets[0], measuredWidth)
+  } else {
+    target = addColumn(targets[nextIndex], measuredWidth)
+  }
+
+  return target
+}
+
+const getSizes = map(child => ({
+  marginTop: getMarginTop(child),
+  height: getBorderTop(child) +
+    getPaddingTop(child) +
+    getContentHeight(child) +
+    getPaddingBottom(child) +
+    getBorderBottom(child),
+  marginBottom: getMarginBottom(child)
+}))
+
 function splitArticle (rawConfig) {
   const config = merge(DEFAULT_CONFIG, rawConfig)
-  hide(config.source)
+  config.source.style = 'height:0;position:absolute;overflow:hidden'
 
   const measuredWidth = getMeasurementWidth(config.source, config.width)
   config.source.style.width = measuredWidth + 'px'
 
-  forEach(target => { target.innerHTML = '' }, config.targets)
+  // const children = Array.from(config.source.children)
 
-  const children = Array.from(config.source.children)
+  const clonedChildrenHolder = document.createElement('div')
+  config.source.appendChild(clonedChildrenHolder)
 
-  // --------------------
+  clearTargets(config.targets)
+  nextTarget(config.targets, measuredWidth)
 
-  // contents > targets > columns > children
-  const contents = [[[]]]
+  // ===========================
 
-  const slices = sliceContentVertically(config.source.children[0], 100)
+  let children = Array.from(config.source.children)
+  children = slice(0, 15, children)
 
-  addColumn(config.targets[0], measuredWidth).appendChild(slices[0])
-  addColumn(config.targets[1], measuredWidth).appendChild(slices[1])
+  // ===========================
 
-  console.log(
-    checkMinimalFit(
-      children[0],
-      getContentHeight(config.targets[0]),
-      length(contents[0][0]) ? getMarginBottom(last(contents[0][0])) : 0
-    ),
-    checkFullFit(
-      children[0],
-      getContentHeight(config.targets[0]),
-      length(contents[0][0]) ? getMarginBottom(last(contents[0][0])) : 0
-    )
-  )
+  /*
+  Issues/TODOS:
+    - resizing to smaller doesn't work
+    - sometimes the calculation is incorrect, we have a scrollbar
+    - incorrect column order: [1,4][2][3] instead of [1,2][3][4]
+  */
 
-  // --------------------
+  addIndex(forEach)((currentChild, index) => {
+    let currentContainer = currentTarget(config.targets)
 
-  let currentChildIndex = 0
-  let currentContainerIndex = 0
+    let childrenInColumn = Array.from(currentContainer.children)
 
-  // addColumn(config.targets[currentContainerIndex], measuredWidth)
-  let x = addColumn(config.targets[currentContainerIndex], measuredWidth)
-  x.appendChild(children[0])
-  x.appendChild(children[1])
-  x.appendChild(children[2])
-
-  const getSizes = map(child => [
-    getMarginTop(child),
-    getBorderTop(child) + getPaddingTop(child) + getContentHeight(child) + getPaddingBottom(child) + getBorderBottom(child),
-    getMarginBottom(child)
-  ])
-
-  // todo: change this to reduce for children
-  while (true) {
-    // let currentChild = children[currentChildIndex]
-    let currentContainer = config.targets[currentContainerIndex]
-    let currentColumn = last(Array.from(currentContainer.children))
-
-    let remainingSpace = getContentHeight(currentColumn) - compose(
+    let remainingSpace = getContentHeight(currentContainer) - compose(
         sum,
         adjust(x => sum(map(
           apply(max),
           makePairs(slice(1, -1, flatten(x)))
         )), 1),
-        reduce((total, [marginTop, height, marginBottom]) => {
+        reduce((total, {marginTop, height, marginBottom}) => {
           total[0] += height
           total[1].push([marginTop, marginBottom])
           return total
         }, [0, []]),
         getSizes
-      )(Array.from(currentColumn.children))
+      )(childrenInColumn)
 
-    console.log(remainingSpace)
+    const lastChildMarginBottom = length(childrenInColumn) ? getMarginBottom(last(childrenInColumn)) : 0
 
-    currentChildIndex++
-
-    if (currentChildIndex > length(children) - 1 || currentChildIndex === 10) {
-      break
+    let clonedChild = currentChild.cloneNode(true)
+    if (index === 0) {
+      clonedChild.style.marginTop = 0
     }
-  }
+    clonedChildrenHolder.appendChild(clonedChild)
 
-  /*
-  if(currentChild.scrollHeight < remainingSpace){
-    console.log('fits into first container')
-    contentsForFirstContainer.push(currentChild)
-  }else{
-    console.error('doesn\'t fit, need to slice')
-    verticalSlice(currentChild, remainingSpace)
+    if (checkFullFit(currentChild, remainingSpace, lastChildMarginBottom)) {
+      console.log('fully fits')
 
-    break
-  }
-  */
+      currentContainer.appendChild(clonedChild)
+    } else if (checkMinimalFit(currentChild, remainingSpace, lastChildMarginBottom)) {
+      console.log('needs slicing')
 
-  // --------------------
+      const margin = max(lastChildMarginBottom, getMarginTop(clonedChild))
+      const [top, bottom] = sliceContentVertically(clonedChild, remainingSpace - margin)
+
+      currentContainer.appendChild(top)
+
+      currentContainer = nextTarget(config.targets, measuredWidth)
+      currentContainer.appendChild(bottom)
+    } else {
+      console.log('it will never fit')
+
+      last(childrenInColumn).style.marginBottom = 0
+
+      currentContainer = nextTarget(config.targets, measuredWidth)
+      currentContainer.appendChild(clonedChild)
+      clonedChild.style.marginTop = 0
+    }
+  }, children)
+
+  // ===========================
+
+  config.source.removeChild(clonedChildrenHolder)
 }
 
 splitArticle.watch = rawConfig => {

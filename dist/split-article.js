@@ -2997,7 +2997,7 @@ var onResize = function (fn) {
     }
   }, 200, {
     trailing: true,
-    leading: false
+    leading: true
   }));
 };
 
@@ -3102,6 +3102,7 @@ var sliceContentVertically = function (child, cuttingPoint) {
   var width = ref.width;
   var height = ref.height;
   var wordWidths = ref.wordWidths;
+  console.log(topHalf, height);
   var indexesPerLine = reduce(sortIntoLines(containerWidth, width), [], wordWidths);
   var childrenPerLine = map(function (line) { return map(function (index) { return topHalf.children[index]; }, pluck(0, line)); }, indexesPerLine);
   var slicedChildrenPerLine = map(compose(splitToWords, join(' '), map(getOuterHtml)), childrenPerLine);
@@ -3159,10 +3160,6 @@ var sliceContentVertically = function (child, cuttingPoint) {
   return [topHalf, bottomHalf]
 };
 
-var hide = function (element) {
-  element.style = 'height:0;position:absolute;overflow:hidden';
-};
-
 var generateMeasurementText = compose(join(''), repeat('a'));
 
 var getMeasurementWidth = function (source, width) {
@@ -3179,7 +3176,7 @@ var getMeasurementWidth = function (source, width) {
 
 var createColumn = function (width) {
   var col = document.createElement('div');
-  col.style = 'display:inline-block;height:100%;width:' + width + 'px';
+  col.style = 'display:inline-block;height:100%;vertical-align:top;width:' + width + 'px';
   return col
 };
 
@@ -3220,103 +3217,147 @@ var makePairs = converge(
   ]
 );
 
+var getArrayMaximum = reduce(max, -Infinity);
+
+var clearTargets = forEach(function (target) { target.innerHTML = ''; });
+
+var currentTargetIndex = function (targets) {
+  var columns = map(function (target) { return Array.from(target.children); })(targets);
+  var numberOfColumns = map(length, columns);
+  var mostColumnAmount = getArrayMaximum(numberOfColumns);
+
+  return (
+    mostColumnAmount !== 0
+    ? dec(findIndex(function (el) { return el < mostColumnAmount; }, numberOfColumns))
+    : -1
+  )
+};
+
+var currentTarget = function (targets) {
+  var currentIndex = currentTargetIndex(targets);
+  var columns = map(function (target) { return Array.from(target.children); })(targets);
+
+  return (
+    currentIndex === -1
+    ? undefined
+    : last(columns[currentIndex])
+  )
+};
+
+var nextTarget = function (targets, measuredWidth) {
+  var currentIndex = currentTargetIndex(targets);
+  var nextIndex = currentIndex + 1;
+  var target;
+
+  if (currentIndex === -1 || nextIndex === length(targets) - 1) {
+    target = addColumn(targets[0], measuredWidth);
+  } else {
+    target = addColumn(targets[nextIndex], measuredWidth);
+  }
+
+  return target
+};
+
+var getSizes = map(function (child) { return ({
+  marginTop: getMarginTop(child),
+  height: getBorderTop(child) +
+    getPaddingTop(child) +
+    getContentHeight(child) +
+    getPaddingBottom(child) +
+    getBorderBottom(child),
+  marginBottom: getMarginBottom(child)
+}); });
+
 function splitArticle (rawConfig) {
   var config = merge(DEFAULT_CONFIG, rawConfig);
-  hide(config.source);
+  config.source.style = 'height:0;position:absolute;overflow:hidden';
 
   var measuredWidth = getMeasurementWidth(config.source, config.width);
   config.source.style.width = measuredWidth + 'px';
 
-  forEach(function (target) { target.innerHTML = ''; }, config.targets);
+  // const children = Array.from(config.source.children)
+
+  var clonedChildrenHolder = document.createElement('div');
+  config.source.appendChild(clonedChildrenHolder);
+
+  clearTargets(config.targets);
+  nextTarget(config.targets, measuredWidth);
+
+  // ===========================
 
   var children = Array.from(config.source.children);
+  children = slice(0, 15, children);
 
-  // --------------------
+  // ===========================
 
-  // contents > targets > columns > children
-  var contents = [[[]]];
+  /*
+  Issues/TODOS:
+    - resizing to smaller doesn't work
+    - sometimes the calculation is incorrect, we have a scrollbar
+    - incorrect column order: [1,4][2][3] instead of [1,2][3][4]
+  */
 
-  var slices = sliceContentVertically(config.source.children[0], 100);
+  addIndex(forEach)(function (currentChild, index) {
+    var currentContainer = currentTarget(config.targets);
 
-  addColumn(config.targets[0], measuredWidth).appendChild(slices[0]);
-  addColumn(config.targets[1], measuredWidth).appendChild(slices[1]);
+    var childrenInColumn = Array.from(currentContainer.children);
 
-  console.log(
-    checkMinimalFit(
-      children[0],
-      getContentHeight(config.targets[0]),
-      length(contents[0][0]) ? getMarginBottom(last(contents[0][0])) : 0
-    ),
-    checkFullFit(
-      children[0],
-      getContentHeight(config.targets[0]),
-      length(contents[0][0]) ? getMarginBottom(last(contents[0][0])) : 0
-    )
-  );
-
-  // --------------------
-
-  var currentChildIndex = 0;
-  var currentContainerIndex = 0;
-
-  // addColumn(config.targets[currentContainerIndex], measuredWidth)
-  var x = addColumn(config.targets[currentContainerIndex], measuredWidth);
-  x.appendChild(children[0]);
-  x.appendChild(children[1]);
-  x.appendChild(children[2]);
-
-  var getSizes = map(function (child) { return [
-    getMarginTop(child),
-    getBorderTop(child) + getPaddingTop(child) + getContentHeight(child) + getPaddingBottom(child) + getBorderBottom(child),
-    getMarginBottom(child)
-  ]; });
-
-  // todo: change this to reduce for children
-  while (true) {
-    // let currentChild = children[currentChildIndex]
-    var currentContainer = config.targets[currentContainerIndex];
-    var currentColumn = last(Array.from(currentContainer.children));
-
-    var remainingSpace = getContentHeight(currentColumn) - compose(
+    var remainingSpace = getContentHeight(currentContainer) - compose(
         sum,
         adjust(function (x) { return sum(map(
           apply(max),
           makePairs(slice(1, -1, flatten(x)))
         )); }, 1),
         reduce(function (total, ref) {
-          var marginTop = ref[0];
-          var height = ref[1];
-          var marginBottom = ref[2];
+          var marginTop = ref.marginTop;
+          var height = ref.height;
+          var marginBottom = ref.marginBottom;
 
           total[0] += height;
           total[1].push([marginTop, marginBottom]);
           return total
         }, [0, []]),
         getSizes
-      )(Array.from(currentColumn.children));
+      )(childrenInColumn);
 
-    console.log(remainingSpace);
+    var lastChildMarginBottom = length(childrenInColumn) ? getMarginBottom(last(childrenInColumn)) : 0;
 
-    currentChildIndex++;
-
-    if (currentChildIndex > length(children) - 1 || currentChildIndex === 10) {
-      break
+    var clonedChild = currentChild.cloneNode(true);
+    if (index === 0) {
+      clonedChild.style.marginTop = 0;
     }
-  }
+    clonedChildrenHolder.appendChild(clonedChild);
 
-  /*
-  if(currentChild.scrollHeight < remainingSpace){
-    console.log('fits into first container')
-    contentsForFirstContainer.push(currentChild)
-  }else{
-    console.error('doesn\'t fit, need to slice')
-    verticalSlice(currentChild, remainingSpace)
+    if (checkFullFit(currentChild, remainingSpace, lastChildMarginBottom)) {
+      console.log('fully fits');
 
-    break
-  }
-  */
+      currentContainer.appendChild(clonedChild);
+    } else if (checkMinimalFit(currentChild, remainingSpace, lastChildMarginBottom)) {
+      console.log('needs slicing');
 
-  // --------------------
+      var margin = max(lastChildMarginBottom, getMarginTop(clonedChild));
+      var ref = sliceContentVertically(clonedChild, remainingSpace - margin);
+      var top = ref[0];
+      var bottom = ref[1];
+
+      currentContainer.appendChild(top);
+
+      currentContainer = nextTarget(config.targets, measuredWidth);
+      currentContainer.appendChild(bottom);
+    } else {
+      console.log('it will never fit');
+
+      last(childrenInColumn).style.marginBottom = 0;
+
+      currentContainer = nextTarget(config.targets, measuredWidth);
+      currentContainer.appendChild(clonedChild);
+      clonedChild.style.marginTop = 0;
+    }
+  }, children);
+
+  // ===========================
+
+  config.source.removeChild(clonedChildrenHolder);
 }
 
 splitArticle.watch = function (rawConfig) {

@@ -1,4 +1,4 @@
-// split-article - created by Lajos Meszaros <m_lajos@hotmail.com> - MIT licence - last built on 2017-05-22
+// split-article - created by Lajos Meszaros <m_lajos@hotmail.com> - MIT licence - last built on 2017-05-23
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define(factory) :
@@ -855,23 +855,6 @@ var sum = reduce(add, 0);
  *      R.multiply(2, 5);  //=> 10
  */
 var multiply = _curry2(function multiply(a, b) { return a * b; });
-
-/**
- * Increments its argument.
- *
- * @func
- * @memberOf R
- * @since v0.9.0
- * @category Math
- * @sig Number -> Number
- * @param {Number} n
- * @return {Number} n + 1
- * @see R.dec
- * @example
- *
- *      R.inc(42); //=> 43
- */
-var inc = add(1);
 
 /**
  * Private `concat` function to merge two array-like objects.
@@ -2929,13 +2912,18 @@ var getVisibleContentHeight = function (element) {
 
 var getSpace = function (element) {
   var space = document.createElement('span');
-  space.innerHTML = '&nbsp;';
-  
+  space.style = 'display:inline-block';
   element.appendChild(space);
   
+  space.textContent = 'W';
+  
+  var sizeOfWrapper = space.getBoundingClientRect().width;
+  
+  space.textContent = 'W W';
+  
   var measure = {
-    height: space.scrollHeight,
-    width: space.scrollWidth
+    height: space.getBoundingClientRect().height,
+    width: space.getBoundingClientRect().width - 2 * sizeOfWrapper
   };
   
   element.removeChild(space);
@@ -3007,7 +2995,6 @@ var onResize = function (fn) {
 
 /*
 Issues/TODOS:
-  - sometimes the calculation is incorrect, we have a scrollbar
   - incorrect column order: [1,4][2][3] instead of [1,2][3][4]
   - when a content is split vertically, the bottom part might need to be split again
 */
@@ -3051,12 +3038,12 @@ var getWordWidths = curry(function (child, paragraph) {
 
   return assoc(
     'wordWidths',
-    addIndex(map)(function (node, index) { return [index, node.scrollWidth]; }, Array.from(child.children)),
+    addIndex(map)(function (node, index) { return [index, node.getBoundingClientRect().width]; }, Array.from(child.children)),
     getSpace(child)
   )
 });
 
-var calculateWidth = function (line, spaceWidth) { return add(sum(pluck(1, line)), multiply(spaceWidth, inc(length(line)))); };
+var calculateWidth = function (line, spaceWidth) { return add(sum(pluck(1, line)), multiply(spaceWidth, length(line))); };
 
 var sortIntoLines = function (containerWidth, spaceWidth) { return function (lines, wordWidth) { return compose(
   converge(
@@ -3069,7 +3056,7 @@ var sortIntoLines = function (containerWidth, spaceWidth) { return function (lin
   when(
     either(
       isEmpty,
-      function () { return calculateWidth(last(lines), spaceWidth) + nth(1, wordWidth) > containerWidth; }
+      function () { return calculateWidth(last(lines), spaceWidth) + nth(1, wordWidth) >= containerWidth; }
     ),
     append([])
   )
@@ -3103,9 +3090,9 @@ var commonItemsLeft = function (left, right, cachedMatches) {
 
 var sliceContentVertically = function (child, cuttingPoint) {
   var topHalf = child.cloneNode(true);
-  var bottomHalf = topHalf.cloneNode(true);
+  var bottomHalf = topHalf.cloneNode();
   var container = child.parentNode;
-  var containerWidth = child.scrollWidth;
+  var containerWidth = child.getBoundingClientRect().width;
 
   container.appendChild(topHalf);
 
@@ -3178,7 +3165,7 @@ var getMeasurementWidth = function (source, width) {
   measurement.style = 'position:absolute;visibility:hidden';
 
   source.appendChild(measurement);
-  var result = measurement.scrollWidth;
+  var result = measurement.getBoundingClientRect().width;
   source.removeChild(measurement);
 
   return result
@@ -3287,8 +3274,7 @@ function splitArticle (rawConfig) {
 
   /**//**/
   // const children = Array.from(config.source.children)
-  var children = Array.from(config.source.children);
-  children = slice(0, 15, children);
+  var children = slice(0, 15, Array.from(config.source.children));
 
   var clonedChildrenHolder = document.createElement('div');
   config.source.appendChild(clonedChildrenHolder);
@@ -3310,23 +3296,23 @@ function splitArticle (rawConfig) {
     clonedChildrenHolder.appendChild(clonedChild);
 
     var remainingSpace = getVisibleContentHeight(currentContainer) - compose(
-        sum,
-        adjust(function (x) { return sum(map(
-          apply(max),
-          makePairs(slice(1, -1, flatten(x)))
-        )); }, 1),
-        reduce(function (total, ref) {
-          var marginTop = ref.marginTop;
-          var height = ref.height;
-          var marginBottom = ref.marginBottom;
+      sum,
+      adjust(function (x) { return sum(map(
+        apply(max),
+        makePairs(slice(1, -1, flatten(x)))
+      )); }, 1),
+      reduce(function (total, ref) {
+        var marginTop = ref.marginTop;
+        var height = ref.height;
+        var marginBottom = ref.marginBottom;
 
-          return compose(
-          adjust(add(height), 0),
-          adjust(append([marginTop, marginBottom]), 1)
-        )(total);
+        return compose(
+        adjust(add(height), 0),
+        adjust(append([marginTop, marginBottom]), 1)
+      )(total);
     }, [0, []]),
-        getSizes
-      )(childrenInColumn);
+      getSizes
+    )(childrenInColumn);
 
     if (checkFullFit(currentChild, remainingSpace, lastChildMarginBottom)) {
       currentContainer.appendChild(clonedChild);
@@ -3350,10 +3336,7 @@ function splitArticle (rawConfig) {
 
 splitArticle.watch = function (rawConfig) {
   splitArticle(rawConfig);
-  onResize(function () {
-    console.log('resize');
-    splitArticle(rawConfig);
-  });
+  onResize(function () { return splitArticle(rawConfig); });
 };
 
 return splitArticle;

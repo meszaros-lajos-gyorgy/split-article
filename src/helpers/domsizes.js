@@ -45,13 +45,18 @@ const getVisibleContentHeight = element => {
 
 const getSpace = element => {
   const space = document.createElement('span')
-  space.innerHTML = '&nbsp;'
-  
+  space.style = 'display:inline-block'
   element.appendChild(space)
   
+  space.textContent = 'W'
+  
+  const sizeOfWrapper = space.getBoundingClientRect().width
+  
+  space.textContent = 'W W'
+  
   const measure = {
-    height: space.scrollHeight,
-    width: space.scrollWidth
+    height: space.getBoundingClientRect().height,
+    width: space.getBoundingClientRect().width - 2 * sizeOfWrapper
   }
   
   element.removeChild(space)

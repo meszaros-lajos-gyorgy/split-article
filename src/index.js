@@ -1,6 +1,5 @@
 /*
 Issues/TODOS:
-  - sometimes the calculation is incorrect, we have a scrollbar
   - incorrect column order: [1,4][2][3] instead of [1,2][3][4]
   - when a content is split vertically, the bottom part might need to be split again
 */
@@ -14,7 +13,6 @@ import {
   add,
   sum,
   multiply,
-  inc,
   adjust,
   dec,
   length,
@@ -102,12 +100,12 @@ const getWordWidths = curry((child, paragraph) => {
 
   return assoc(
     'wordWidths',
-    addIndex(map)((node, index) => [index, node.scrollWidth], Array.from(child.children)),
+    addIndex(map)((node, index) => [index, node.getBoundingClientRect().width], Array.from(child.children)),
     getSpace(child)
   )
 })
 
-const calculateWidth = (line, spaceWidth) => add(sum(pluck(1, line)), multiply(spaceWidth, inc(length(line))))
+const calculateWidth = (line, spaceWidth) => add(sum(pluck(1, line)), multiply(spaceWidth, length(line)))
 
 const sortIntoLines = (containerWidth, spaceWidth) => (lines, wordWidth) => compose(
   converge(
@@ -120,7 +118,7 @@ const sortIntoLines = (containerWidth, spaceWidth) => (lines, wordWidth) => comp
   when(
     either(
       isEmpty,
-      () => calculateWidth(last(lines), spaceWidth) + nth(1, wordWidth) > containerWidth
+      () => calculateWidth(last(lines), spaceWidth) + nth(1, wordWidth) >= containerWidth
     ),
     append([])
   )
@@ -149,9 +147,9 @@ const commonItemsLeft = (left, right, cachedMatches) => {
 
 const sliceContentVertically = (child, cuttingPoint) => {
   const topHalf = child.cloneNode(true)
-  const bottomHalf = topHalf.cloneNode(true)
+  const bottomHalf = topHalf.cloneNode()
   const container = child.parentNode
-  const containerWidth = child.scrollWidth
+  const containerWidth = child.getBoundingClientRect().width
 
   container.appendChild(topHalf)
 
@@ -215,7 +213,7 @@ const getMeasurementWidth = (source, width) => {
   measurement.style = 'position:absolute;visibility:hidden'
 
   source.appendChild(measurement)
-  const result = measurement.scrollWidth
+  const result = measurement.getBoundingClientRect().width
   source.removeChild(measurement)
 
   return result
@@ -324,8 +322,7 @@ function splitArticle (rawConfig) {
 
   /**//**/
   // const children = Array.from(config.source.children)
-  let children = Array.from(config.source.children)
-  children = slice(0, 15, children)
+  const children = slice(0, 15, Array.from(config.source.children))
 
   const clonedChildrenHolder = document.createElement('div')
   config.source.appendChild(clonedChildrenHolder)
@@ -347,17 +344,17 @@ function splitArticle (rawConfig) {
     clonedChildrenHolder.appendChild(clonedChild)
 
     const remainingSpace = getVisibleContentHeight(currentContainer) - compose(
-        sum,
-        adjust(x => sum(map(
-          apply(max),
-          makePairs(slice(1, -1, flatten(x)))
-        )), 1),
-        reduce((total, {marginTop, height, marginBottom}) => compose(
-          adjust(add(height), 0),
-          adjust(append([marginTop, marginBottom]), 1)
-        )(total), [0, []]),
-        getSizes
-      )(childrenInColumn)
+      sum,
+      adjust(x => sum(map(
+        apply(max),
+        makePairs(slice(1, -1, flatten(x)))
+      )), 1),
+      reduce((total, {marginTop, height, marginBottom}) => compose(
+        adjust(add(height), 0),
+        adjust(append([marginTop, marginBottom]), 1)
+      )(total), [0, []]),
+      getSizes
+    )(childrenInColumn)
 
     if (checkFullFit(currentChild, remainingSpace, lastChildMarginBottom)) {
       currentContainer.appendChild(clonedChild)
@@ -379,10 +376,7 @@ function splitArticle (rawConfig) {
 
 splitArticle.watch = rawConfig => {
   splitArticle(rawConfig)
-  onResize(() => {
-    console.log('resize')
-    splitArticle(rawConfig)
-  })
+  onResize(() => splitArticle(rawConfig))
 }
 
 export default splitArticle

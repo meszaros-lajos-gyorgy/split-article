@@ -1,3 +1,10 @@
+/*
+Issues/TODOS:
+  - sometimes the calculation is incorrect, we have a scrollbar
+  - incorrect column order: [1,4][2][3] instead of [1,2][3][4]
+  - when a content is split vertically, the bottom part might need to be split again
+*/
+
 import {
   clone,
   replace,
@@ -49,7 +56,8 @@ import {
 } from 'ramda'
 
 import {
-  getContentHeight,
+  getFullContentHeight,
+  getVisibleContentHeight,
   getPaddingTop,
   getPaddingBottom,
   getBorderTop,
@@ -112,7 +120,7 @@ const sortIntoLines = (containerWidth, spaceWidth) => (lines, wordWidth) => comp
   when(
     either(
       isEmpty,
-      () => calculateWidth(last(lines), spaceWidth) + nth(1, wordWidth) >= containerWidth
+      () => calculateWidth(last(lines), spaceWidth) + nth(1, wordWidth) > containerWidth
     ),
     append([])
   )
@@ -148,7 +156,6 @@ const sliceContentVertically = (child, cuttingPoint) => {
   container.appendChild(topHalf)
 
   const {width, height, wordWidths} = converge(getWordWidths, [identity, compose(splitToWords, getInnerHtml)])(topHalf)
-  console.log(topHalf, height)
   const indexesPerLine = reduce(sortIntoLines(containerWidth, width), [], wordWidths)
   const childrenPerLine = map(line => map(index => topHalf.children[index], pluck(0, line)), indexesPerLine)
   const slicedChildrenPerLine = map(compose(splitToWords, join(' '), map(getOuterHtml)), childrenPerLine)
@@ -242,7 +249,7 @@ const checkFullFit = (element, remainingSpaceWithoutMargin, lastMarginBottom) =>
     margin +
     getBorderTop(element) +
     getPaddingTop(element) +
-    getContentHeight(element) +
+    getFullContentHeight(element) +
     getPaddingBottom(element) +
     getBorderBottom(element)
 }
@@ -302,7 +309,7 @@ const getSizes = map(child => ({
   marginTop: getMarginTop(child),
   height: getBorderTop(child) +
     getPaddingTop(child) +
-    getContentHeight(child) +
+    getFullContentHeight(child) +
     getPaddingBottom(child) +
     getBorderBottom(child),
   marginBottom: getMarginBottom(child)
@@ -315,7 +322,10 @@ function splitArticle (rawConfig) {
   const measuredWidth = getMeasurementWidth(config.source, config.width)
   config.source.style.width = measuredWidth + 'px'
 
+  /**//**/
   // const children = Array.from(config.source.children)
+  let children = Array.from(config.source.children)
+  children = slice(0, 15, children)
 
   const clonedChildrenHolder = document.createElement('div')
   config.source.appendChild(clonedChildrenHolder)
@@ -323,80 +333,56 @@ function splitArticle (rawConfig) {
   clearTargets(config.targets)
   nextTarget(config.targets, measuredWidth)
 
-  // ===========================
-
-  let children = Array.from(config.source.children)
-  children = slice(0, 15, children)
-
-  // ===========================
-
-  /*
-  Issues/TODOS:
-    - resizing to smaller doesn't work
-    - sometimes the calculation is incorrect, we have a scrollbar
-    - incorrect column order: [1,4][2][3] instead of [1,2][3][4]
-  */
-
   addIndex(forEach)((currentChild, index) => {
-    let currentContainer = currentTarget(config.targets)
+    const currentContainer = currentTarget(config.targets)
+    const childrenInColumn = Array.from(currentContainer.children)
+    const lastChildInColumn = last(childrenInColumn)
+    const lastChildMarginBottom = length(childrenInColumn) ? getMarginBottom(lastChildInColumn) : 0
+    const clonedChild = currentChild.cloneNode(true)
+    const margin = max(lastChildMarginBottom, getMarginTop(clonedChild))
 
-    let childrenInColumn = Array.from(currentContainer.children)
-
-    let remainingSpace = getContentHeight(currentContainer) - compose(
-        sum,
-        adjust(x => sum(map(
-          apply(max),
-          makePairs(slice(1, -1, flatten(x)))
-        )), 1),
-        reduce((total, {marginTop, height, marginBottom}) => {
-          total[0] += height
-          total[1].push([marginTop, marginBottom])
-          return total
-        }, [0, []]),
-        getSizes
-      )(childrenInColumn)
-
-    const lastChildMarginBottom = length(childrenInColumn) ? getMarginBottom(last(childrenInColumn)) : 0
-
-    let clonedChild = currentChild.cloneNode(true)
     if (index === 0) {
       clonedChild.style.marginTop = 0
     }
     clonedChildrenHolder.appendChild(clonedChild)
 
-    if (checkFullFit(currentChild, remainingSpace, lastChildMarginBottom)) {
-      console.log('fully fits')
+    const remainingSpace = getVisibleContentHeight(currentContainer) - compose(
+        sum,
+        adjust(x => sum(map(
+          apply(max),
+          makePairs(slice(1, -1, flatten(x)))
+        )), 1),
+        reduce((total, {marginTop, height, marginBottom}) => compose(
+          adjust(add(height), 0),
+          adjust(append([marginTop, marginBottom]), 1)
+        )(total), [0, []]),
+        getSizes
+      )(childrenInColumn)
 
+    if (checkFullFit(currentChild, remainingSpace, lastChildMarginBottom)) {
       currentContainer.appendChild(clonedChild)
     } else if (checkMinimalFit(currentChild, remainingSpace, lastChildMarginBottom)) {
-      console.log('needs slicing')
-
-      const margin = max(lastChildMarginBottom, getMarginTop(clonedChild))
       const [top, bottom] = sliceContentVertically(clonedChild, remainingSpace - margin)
 
       currentContainer.appendChild(top)
-
-      currentContainer = nextTarget(config.targets, measuredWidth)
-      currentContainer.appendChild(bottom)
+      nextTarget(config.targets, measuredWidth).appendChild(bottom)
     } else {
-      console.log('it will never fit')
+      lastChildInColumn.style.marginBottom = 0
 
-      last(childrenInColumn).style.marginBottom = 0
-
-      currentContainer = nextTarget(config.targets, measuredWidth)
-      currentContainer.appendChild(clonedChild)
+      nextTarget(config.targets, measuredWidth).appendChild(clonedChild)
       clonedChild.style.marginTop = 0
     }
   }, children)
-
-  // ===========================
 
   config.source.removeChild(clonedChildrenHolder)
 }
 
 splitArticle.watch = rawConfig => {
   splitArticle(rawConfig)
-  onResize(() => splitArticle(rawConfig))
+  onResize(() => {
+    console.log('resize')
+    splitArticle(rawConfig)
+  })
 }
 
 export default splitArticle

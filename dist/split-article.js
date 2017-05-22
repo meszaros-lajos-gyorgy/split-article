@@ -2905,7 +2905,7 @@ var getMarginBottom = compose(parseFloat, getComputedProperty('margin-bottom'));
 var isOutpositioned = function (element) { return contains(getComputedProperty('position', element), ['absolute', 'fixed']); };
 var isFloating = function (element) { return not(equals('none', getComputedProperty('float', element))); };
 
-var getContentHeight = function (element) {
+var getFullContentHeight = function (element) {
   var removeThisToo = 0;
 
   if (isOutpositioned(element) || isFloating(element)) {
@@ -2921,6 +2921,10 @@ var getContentHeight = function (element) {
   }
 
   return element.scrollHeight - getPaddingTop(element) - getPaddingBottom(element) - removeThisToo
+};
+
+var getVisibleContentHeight = function (element) {
+  return element.clientHeight - getPaddingTop(element) - getPaddingBottom(element)
 };
 
 var getSpace = function (element) {
@@ -2988,11 +2992,11 @@ function throttle(func, wait, options) {
 }
 
 var onResize = function (fn) {
-  var previousPageHeight = document.body.scrollHeight;
+  var previousPageHeight = document.body.clientHeight;
 
   window.addEventListener('resize', throttle(function () {
-    if (document.body.scrollHeight !== previousPageHeight) {
-      previousPageHeight = document.body.scrollHeight;
+    if (document.body.clientHeight !== previousPageHeight) {
+      previousPageHeight = document.body.clientHeight;
       fn();
     }
   }, 200, {
@@ -3000,6 +3004,13 @@ var onResize = function (fn) {
     leading: true
   }));
 };
+
+/*
+Issues/TODOS:
+  - sometimes the calculation is incorrect, we have a scrollbar
+  - incorrect column order: [1,4][2][3] instead of [1,2][3][4]
+  - when a content is split vertically, the bottom part might need to be split again
+*/
 
 var DEFAULT_CONFIG = {
   width: 50
@@ -3058,7 +3069,7 @@ var sortIntoLines = function (containerWidth, spaceWidth) { return function (lin
   when(
     either(
       isEmpty,
-      function () { return calculateWidth(last(lines), spaceWidth) + nth(1, wordWidth) >= containerWidth; }
+      function () { return calculateWidth(last(lines), spaceWidth) + nth(1, wordWidth) > containerWidth; }
     ),
     append([])
   )
@@ -3102,7 +3113,6 @@ var sliceContentVertically = function (child, cuttingPoint) {
   var width = ref.width;
   var height = ref.height;
   var wordWidths = ref.wordWidths;
-  console.log(topHalf, height);
   var indexesPerLine = reduce(sortIntoLines(containerWidth, width), [], wordWidths);
   var childrenPerLine = map(function (line) { return map(function (index) { return topHalf.children[index]; }, pluck(0, line)); }, indexesPerLine);
   var slicedChildrenPerLine = map(compose(splitToWords, join(' '), map(getOuterHtml)), childrenPerLine);
@@ -3202,7 +3212,7 @@ var checkFullFit = function (element, remainingSpaceWithoutMargin, lastMarginBot
     margin +
     getBorderTop(element) +
     getPaddingTop(element) +
-    getContentHeight(element) +
+    getFullContentHeight(element) +
     getPaddingBottom(element) +
     getBorderBottom(element)
 };
@@ -3262,7 +3272,7 @@ var getSizes = map(function (child) { return ({
   marginTop: getMarginTop(child),
   height: getBorderTop(child) +
     getPaddingTop(child) +
-    getContentHeight(child) +
+    getFullContentHeight(child) +
     getPaddingBottom(child) +
     getBorderBottom(child),
   marginBottom: getMarginBottom(child)
@@ -3275,7 +3285,10 @@ function splitArticle (rawConfig) {
   var measuredWidth = getMeasurementWidth(config.source, config.width);
   config.source.style.width = measuredWidth + 'px';
 
+  /**//**/
   // const children = Array.from(config.source.children)
+  var children = Array.from(config.source.children);
+  children = slice(0, 15, children);
 
   var clonedChildrenHolder = document.createElement('div');
   config.source.appendChild(clonedChildrenHolder);
@@ -3283,26 +3296,20 @@ function splitArticle (rawConfig) {
   clearTargets(config.targets);
   nextTarget(config.targets, measuredWidth);
 
-  // ===========================
-
-  var children = Array.from(config.source.children);
-  children = slice(0, 15, children);
-
-  // ===========================
-
-  /*
-  Issues/TODOS:
-    - resizing to smaller doesn't work
-    - sometimes the calculation is incorrect, we have a scrollbar
-    - incorrect column order: [1,4][2][3] instead of [1,2][3][4]
-  */
-
   addIndex(forEach)(function (currentChild, index) {
     var currentContainer = currentTarget(config.targets);
-
     var childrenInColumn = Array.from(currentContainer.children);
+    var lastChildInColumn = last(childrenInColumn);
+    var lastChildMarginBottom = length(childrenInColumn) ? getMarginBottom(lastChildInColumn) : 0;
+    var clonedChild = currentChild.cloneNode(true);
+    var margin = max(lastChildMarginBottom, getMarginTop(clonedChild));
 
-    var remainingSpace = getContentHeight(currentContainer) - compose(
+    if (index === 0) {
+      clonedChild.style.marginTop = 0;
+    }
+    clonedChildrenHolder.appendChild(clonedChild);
+
+    var remainingSpace = getVisibleContentHeight(currentContainer) - compose(
         sum,
         adjust(function (x) { return sum(map(
           apply(max),
@@ -3313,56 +3320,40 @@ function splitArticle (rawConfig) {
           var height = ref.height;
           var marginBottom = ref.marginBottom;
 
-          total[0] += height;
-          total[1].push([marginTop, marginBottom]);
-          return total
-        }, [0, []]),
+          return compose(
+          adjust(add(height), 0),
+          adjust(append([marginTop, marginBottom]), 1)
+        )(total);
+    }, [0, []]),
         getSizes
       )(childrenInColumn);
 
-    var lastChildMarginBottom = length(childrenInColumn) ? getMarginBottom(last(childrenInColumn)) : 0;
-
-    var clonedChild = currentChild.cloneNode(true);
-    if (index === 0) {
-      clonedChild.style.marginTop = 0;
-    }
-    clonedChildrenHolder.appendChild(clonedChild);
-
     if (checkFullFit(currentChild, remainingSpace, lastChildMarginBottom)) {
-      console.log('fully fits');
-
       currentContainer.appendChild(clonedChild);
     } else if (checkMinimalFit(currentChild, remainingSpace, lastChildMarginBottom)) {
-      console.log('needs slicing');
-
-      var margin = max(lastChildMarginBottom, getMarginTop(clonedChild));
       var ref = sliceContentVertically(clonedChild, remainingSpace - margin);
       var top = ref[0];
       var bottom = ref[1];
 
       currentContainer.appendChild(top);
-
-      currentContainer = nextTarget(config.targets, measuredWidth);
-      currentContainer.appendChild(bottom);
+      nextTarget(config.targets, measuredWidth).appendChild(bottom);
     } else {
-      console.log('it will never fit');
+      lastChildInColumn.style.marginBottom = 0;
 
-      last(childrenInColumn).style.marginBottom = 0;
-
-      currentContainer = nextTarget(config.targets, measuredWidth);
-      currentContainer.appendChild(clonedChild);
+      nextTarget(config.targets, measuredWidth).appendChild(clonedChild);
       clonedChild.style.marginTop = 0;
     }
   }, children);
-
-  // ===========================
 
   config.source.removeChild(clonedChildrenHolder);
 }
 
 splitArticle.watch = function (rawConfig) {
   splitArticle(rawConfig);
-  onResize(function () { return splitArticle(rawConfig); });
+  onResize(function () {
+    console.log('resize');
+    splitArticle(rawConfig);
+  });
 };
 
 return splitArticle;

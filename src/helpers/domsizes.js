@@ -21,7 +21,7 @@ const getMarginBottom = compose(parseFloat, getComputedProperty('margin-bottom')
 const isOutpositioned = element => contains(getComputedProperty('position', element), ['absolute', 'fixed'])
 const isFloating = element => not(equals('none', getComputedProperty('float', element)))
 
-const getContentHeight = element => {
+const getFullContentHeight = element => {
   let removeThisToo = 0
 
   if (isOutpositioned(element) || isFloating(element)) {
@@ -37,6 +37,10 @@ const getContentHeight = element => {
   }
 
   return element.scrollHeight - getPaddingTop(element) - getPaddingBottom(element) - removeThisToo
+}
+
+const getVisibleContentHeight = element => {
+  return element.clientHeight - getPaddingTop(element) - getPaddingBottom(element)
 }
 
 const getSpace = element => {
@@ -59,7 +63,8 @@ export {
   getComputedProperty,
   isOutpositioned,
   isFloating,
-  getContentHeight,
+  getFullContentHeight,
+  getVisibleContentHeight,
   getPaddingTop,
   getPaddingBottom,
   getBorderTop,

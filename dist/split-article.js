@@ -2997,12 +2997,18 @@ var onResize = function (fn, speed) {
 
 /*
 Issues/TODOS:
-  - incorrect column order: [1,4][2][3] instead of [1,2][3][4]
+  - when a new column is introduced, then recalculate the all elements before current too
   - when a content is split vertically, the bottom part might need to be split again
+  - incorrect column order: [1,4][2][3] instead of [1,2][3][4]
+
+  - target min-height is not taken into account
 */
 
 var DEFAULT_CONFIG = {
-  width: 50
+  width: 50,
+  speed: 200,
+  offset: 0,
+  limit: Infinity
 };
 
 var splitToWords = curry(function (htmlString) {
@@ -3274,9 +3280,7 @@ function splitArticle (rawConfig) {
   var measuredWidth = getMeasurementWidth(config.source, config.width);
   config.source.style.width = measuredWidth + 'px';
 
-  /**//**/
-  // const children = Array.from(config.source.children)
-  var children = slice(0, 15, Array.from(config.source.children));
+  var children = slice(config.offset, config.limit, Array.from(config.source.children));
 
   var clonedChildrenHolder = document.createElement('div');
   config.source.appendChild(clonedChildrenHolder);
@@ -3337,8 +3341,9 @@ function splitArticle (rawConfig) {
 }
 
 splitArticle.watch = function (rawConfig) {
-  splitArticle(rawConfig);
-  onResize(function () { return splitArticle(rawConfig); }, rawConfig.speed);
+  var config = merge(DEFAULT_CONFIG, rawConfig);
+  splitArticle(config);
+  onResize(function () { return splitArticle(config); }, config.speed);
 };
 
 return splitArticle;

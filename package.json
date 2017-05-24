@@ -21,11 +21,11 @@
     "git:resetToHead": "git reset HEAD",
     "git:createBranch": "git checkout -b",
     "git:addAll": "git add -A",
-    "git:commitNoValidate": "git commit --no-validate -m \"Saving workspace\"",
+    "git:commitNoVerify": "git commit --no-verify -m \"Saving workspace\"",
     "git:forceAdd": "git add --force -u",
     "dist:clean": "rimraf dist || true",
     "dist:stage": "npm run git:forceAdd -- dist",
-    "workspace:save": "npm run all \"git:resetToHead\" \"git:createBranch -- workspace-{1}\" \"git:addAll\" \"git:commitNoValidate\" --",
+    "workspace:save": "npm-run-all \"git:resetToHead\" \"git:createBranch -- workspace-{1}\" \"git:addAll\" \"git:commitNoVerify\" --",
     "workspace:restore": "npm-run-all \"git:mergeNoCommit -- workspace-{1}\" \"git:resetToHead\"  --"
   },
   "pre-commit": [

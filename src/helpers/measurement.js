@@ -5,8 +5,19 @@ import {
   equals,
   head,
   last,
-  not
+  not,
+  join,
+  repeat
 } from 'ramda'
+
+import {
+  appendTo,
+  removeFrom,
+  children,
+  setTextContent,
+  setAttribute,
+  createElement
+} from './ramda-dom'
 
 const getComputedProperty = curry((property, element) => window.getComputedStyle(element).getPropertyValue(property))
 
@@ -25,14 +36,14 @@ const getFullContentHeight = element => {
   let removeThisToo = 0
 
   if (isOutpositioned(element) || isFloating(element)) {
-    removeThisToo += getMarginTop(head(element.children))
-    removeThisToo += getMarginBottom(last(element.children))
+    removeThisToo += getMarginTop(head(children(element)))
+    removeThisToo += getMarginBottom(last(children(element)))
   } else {
     if (getBorderTop(element)) {
-      removeThisToo += getMarginTop(head(element.children))
+      removeThisToo += getMarginTop(head(children(element)))
     }
     if (getBorderBottom(element)) {
-      removeThisToo += getMarginBottom(last(element.children))
+      removeThisToo += getMarginBottom(last(children(element)))
     }
   }
 
@@ -43,25 +54,61 @@ const getVisibleContentHeight = element => {
   return element.clientHeight - getPaddingTop(element) - getPaddingBottom(element)
 }
 
+const getBoxHeight = node =>
+  getBorderTop(node) +
+  getPaddingTop(node) +
+  getFullContentHeight(node) +
+  getPaddingBottom(node) +
+  getBorderBottom(node)
+
 const getSpace = element => {
-  const space = document.createElement('span')
-  space.style = 'display:inline-block'
-  element.appendChild(space)
-  
-  space.textContent = 'W'
-  
+  const space = compose(
+    setTextContent('W'),
+    appendTo(element),
+    setAttribute('style', 'display:inline-block'),
+    createElement
+  )('span')
+
   const sizeOfWrapper = space.getBoundingClientRect().width
-  
-  space.textContent = 'W W'
-  
+
+  setTextContent('W W', space)
+
   const measure = {
     height: space.getBoundingClientRect().height,
     width: space.getBoundingClientRect().width - 2 * sizeOfWrapper
   }
-  
-  element.removeChild(space)
-  
+
+  removeFrom(element, space)
+
   return measure
+}
+
+const checkMinimalFit = (element, remainingSpaceWithoutMargin, lastMarginBottom) => {
+  const margin = Math.max(getMarginTop(element), lastMarginBottom)
+  const lineHeight = getSpace(element).height
+  return remainingSpaceWithoutMargin >= margin + getBorderTop(element) + getPaddingTop(element) + lineHeight
+}
+
+const checkFullFit = (element, remainingSpaceWithoutMargin, lastMarginBottom) => {
+  const margin = Math.max(getMarginTop(element), lastMarginBottom)
+  return remainingSpaceWithoutMargin >= margin + getBoxHeight(element)
+}
+
+const generateMeasurementText = compose(join(''), repeat('a'))
+
+const getMeasurementWidth = (source, width) => {
+  const measurement = compose(
+    appendTo(source),
+    setAttribute('style', 'position:absolute;visibility:hidden'),
+    setTextContent(generateMeasurementText(width)),
+    createElement
+  )('div')
+
+  const result = measurement.getBoundingClientRect().width
+
+  removeFrom(source, measurement)
+
+  return result
 }
 
 export {
@@ -70,11 +117,16 @@ export {
   isFloating,
   getFullContentHeight,
   getVisibleContentHeight,
+  getBoxHeight,
   getPaddingTop,
   getPaddingBottom,
   getBorderTop,
   getBorderBottom,
   getMarginTop,
   getMarginBottom,
-  getSpace
+  getSpace,
+  checkMinimalFit,
+  checkFullFit,
+  generateMeasurementText,
+  getMeasurementWidth
 }

@@ -25,7 +25,7 @@ After this the built versions are available in the `node_modules/split-article/d
 
 ### CDN
 
-**TODO: add CDN**
+*TODO: add CDN*
 
 ## API
 
@@ -40,7 +40,7 @@ after the given elements are accessible.
 Executes the text splitting once, then watches for the resize event of the window
 and re-executes text splitting
 
-### config
+## config
 
 A javascript object with the following properties:
 

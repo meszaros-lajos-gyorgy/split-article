@@ -1,4 +1,4 @@
-// split-article - created by Lajos Meszaros <m_lajos@hotmail.com> - MIT licence - last built on 2017-05-28
+// split-article - created by Lajos Meszaros <m_lajos@hotmail.com> - MIT licence - last built on 2017-05-29
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define(factory) :
@@ -3112,7 +3112,11 @@ var renderWord = function (ref) {
   var content = ref[1];
   var closingTags = ref[2];
 
-  return join('', openingTags) + content + join('', closingTags);
+  if (length(openingTags) === 0) {
+    openingTags.push('<span>');
+    closingTags.push('</span>');
+  }
+  return join('', openingTags) + content + join('', closingTags)
 };
 
 var getWordWidths = curry(function (child, paragraph) {

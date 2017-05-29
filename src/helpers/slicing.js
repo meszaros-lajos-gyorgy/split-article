@@ -85,7 +85,13 @@ const splitToWords = curry(htmlString => {
   }, [], elements)
 })
 
-const renderWord = ([openingTags, content, closingTags]) => join('', openingTags) + content + join('', closingTags)
+const renderWord = ([openingTags, content, closingTags]) => {
+  if (length(openingTags) === 0) {
+    openingTags.push('<span>')
+    closingTags.push('</span>')
+  }
+  return join('', openingTags) + content + join('', closingTags)
+}
 
 const getWordWidths = curry((child, paragraph) => {
   // todo: rendering should go to a separate function

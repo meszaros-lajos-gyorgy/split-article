@@ -1,4 +1,4 @@
-// split-article - created by Lajos Meszaros <m_lajos@hotmail.com> - MIT licence - last built on 2017-05-29
+// split-article - created by Lajos Meszaros <m_lajos@hotmail.com> - MIT licence - last built on 2017-05-31
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define(factory) :
@@ -1273,6 +1273,101 @@ var clone = _curry1(function clone(value) {
     _clone(value, [], [], true);
 });
 
+var _filter = function _filter(fn, list) {
+  var idx = 0;
+  var len = list.length;
+  var result = [];
+
+  while (idx < len) {
+    if (fn(list[idx])) {
+      result[result.length] = list[idx];
+    }
+    idx += 1;
+  }
+  return result;
+};
+
+var _isObject = function _isObject(x) {
+  return Object.prototype.toString.call(x) === '[object Object]';
+};
+
+var _xfilter = (function() {
+  function XFilter(f, xf) {
+    this.xf = xf;
+    this.f = f;
+  }
+  XFilter.prototype['@@transducer/init'] = _xfBase.init;
+  XFilter.prototype['@@transducer/result'] = _xfBase.result;
+  XFilter.prototype['@@transducer/step'] = function(result, input) {
+    return this.f(input) ? this.xf['@@transducer/step'](result, input) : result;
+  };
+
+  return _curry2(function _xfilter(f, xf) { return new XFilter(f, xf); });
+}());
+
+/**
+ * Takes a predicate and a "filterable", and returns a new filterable of the
+ * same type containing the members of the given filterable which satisfy the
+ * given predicate.
+ *
+ * Dispatches to the `filter` method of the second argument, if present.
+ *
+ * Acts as a transducer if a transformer is given in list position.
+ *
+ * @func
+ * @memberOf R
+ * @since v0.1.0
+ * @category List
+ * @sig Filterable f => (a -> Boolean) -> f a -> f a
+ * @param {Function} pred
+ * @param {Array} filterable
+ * @return {Array}
+ * @see R.reject, R.transduce, R.addIndex
+ * @example
+ *
+ *      var isEven = n => n % 2 === 0;
+ *
+ *      R.filter(isEven, [1, 2, 3, 4]); //=> [2, 4]
+ *
+ *      R.filter(isEven, {a: 1, b: 2, c: 3, d: 4}); //=> {b: 2, d: 4}
+ */
+var filter = _curry2(_dispatchable(['filter'], _xfilter, function(pred, filterable) {
+  return (
+    _isObject(filterable) ?
+      _reduce(function(acc, key) {
+        if (pred(filterable[key])) {
+          acc[key] = filterable[key];
+        }
+        return acc;
+      }, {}, keys(filterable)) :
+    // else
+      _filter(pred, filterable)
+  );
+}));
+
+/**
+ * Returns `true` if the first argument is less than the second; `false`
+ * otherwise.
+ *
+ * @func
+ * @memberOf R
+ * @since v0.1.0
+ * @category Relation
+ * @sig Ord a => a -> a -> Boolean
+ * @param {*} a
+ * @param {*} b
+ * @return {Boolean}
+ * @see R.gt
+ * @example
+ *
+ *      R.lt(2, 1); //=> false
+ *      R.lt(2, 2); //=> false
+ *      R.lt(2, 3); //=> true
+ *      R.lt('a', 'z'); //=> true
+ *      R.lt('z', 'a'); //=> false
+ */
+var lt = _curry2(function lt(a, b) { return a < b; });
+
 var _arrayFromIterator = function _arrayFromIterator(iter) {
   var list = [];
   var next;
@@ -1671,78 +1766,6 @@ var _complement = function _complement(f) {
     return !f.apply(this, arguments);
   };
 };
-
-var _filter = function _filter(fn, list) {
-  var idx = 0;
-  var len = list.length;
-  var result = [];
-
-  while (idx < len) {
-    if (fn(list[idx])) {
-      result[result.length] = list[idx];
-    }
-    idx += 1;
-  }
-  return result;
-};
-
-var _isObject = function _isObject(x) {
-  return Object.prototype.toString.call(x) === '[object Object]';
-};
-
-var _xfilter = (function() {
-  function XFilter(f, xf) {
-    this.xf = xf;
-    this.f = f;
-  }
-  XFilter.prototype['@@transducer/init'] = _xfBase.init;
-  XFilter.prototype['@@transducer/result'] = _xfBase.result;
-  XFilter.prototype['@@transducer/step'] = function(result, input) {
-    return this.f(input) ? this.xf['@@transducer/step'](result, input) : result;
-  };
-
-  return _curry2(function _xfilter(f, xf) { return new XFilter(f, xf); });
-}());
-
-/**
- * Takes a predicate and a "filterable", and returns a new filterable of the
- * same type containing the members of the given filterable which satisfy the
- * given predicate.
- *
- * Dispatches to the `filter` method of the second argument, if present.
- *
- * Acts as a transducer if a transformer is given in list position.
- *
- * @func
- * @memberOf R
- * @since v0.1.0
- * @category List
- * @sig Filterable f => (a -> Boolean) -> f a -> f a
- * @param {Function} pred
- * @param {Array} filterable
- * @return {Array}
- * @see R.reject, R.transduce, R.addIndex
- * @example
- *
- *      var isEven = n => n % 2 === 0;
- *
- *      R.filter(isEven, [1, 2, 3, 4]); //=> [2, 4]
- *
- *      R.filter(isEven, {a: 1, b: 2, c: 3, d: 4}); //=> {b: 2, d: 4}
- */
-var filter = _curry2(_dispatchable(['filter'], _xfilter, function(pred, filterable) {
-  return (
-    _isObject(filterable) ?
-      _reduce(function(acc, key) {
-        if (pred(filterable[key])) {
-          acc[key] = filterable[key];
-        }
-        return acc;
-      }, {}, keys(filterable)) :
-    // else
-      _filter(pred, filterable)
-  );
-}));
 
 /**
  * The complement of `filter`.
@@ -3299,7 +3322,8 @@ var DEFAULT_CONFIG = {
   width: 50,
   speed: 200,
   offset: 0,
-  limit: Infinity
+  limit: Infinity,
+  gap: '30px'
 };
 
 var render = function (columns, elements, measuredWidth) {
@@ -3394,6 +3418,14 @@ function splitArticle (rawConfig) {
   do {
     addColumnTo(measuredWidth, getNextTarget(config.targets));
   } while (render(getColumns(config.targets), sourceChildren, measuredWidth))
+
+  compose(
+    map(updateMargin('left', config.gap)),
+    flatten,
+    map(tail),
+    filter(compose(lt(1), length)),
+    getColumnsPerTarget
+  )(config.targets);
 }
 
 splitArticle.watch = function (rawConfig) {

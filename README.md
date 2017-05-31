@@ -74,6 +74,11 @@ first element. *(see limit config property)*
 be moved. By default, there is no limiting, splitting will go all the way to the
 final element. *(see offset config property)*
 
+**gap :** *(optional)* `<string> | any valid CSS width value | default: '30px'`
+
+> When there are multiple columns in a target, then columns are separated by
+a gap, which can accepty any CSS width value.
+
 ### License
 
 MIT

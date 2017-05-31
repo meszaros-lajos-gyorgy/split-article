@@ -19,7 +19,10 @@ import {
   apply,
   flatten,
   add,
-  clone
+  clone,
+  filter,
+  tail,
+  lt
 } from 'ramda'
 
 import {
@@ -34,6 +37,7 @@ import {
 
 import {
   getColumns,
+  getColumnsPerTarget,
   addColumnTo,
   getNextTarget
 } from './helpers/columns'
@@ -62,7 +66,8 @@ const DEFAULT_CONFIG = {
   width: 50,
   speed: 200,
   offset: 0,
-  limit: Infinity
+  limit: Infinity,
+  gap: '30px'
 }
 
 const render = (columns, elements, measuredWidth) => {
@@ -149,6 +154,14 @@ function splitArticle (rawConfig) {
   do {
     addColumnTo(measuredWidth, getNextTarget(config.targets))
   } while (render(getColumns(config.targets), sourceChildren, measuredWidth))
+
+  compose(
+    map(updateMargin('left', config.gap)),
+    flatten,
+    map(tail),
+    filter(compose(lt(1), length)),
+    getColumnsPerTarget
+  )(config.targets)
 }
 
 splitArticle.watch = rawConfig => {

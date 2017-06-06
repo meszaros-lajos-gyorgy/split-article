@@ -1,4 +1,4 @@
-// split-article - created by Lajos Meszaros <m_lajos@hotmail.com> - MIT licence - last built on 2017-05-31
+// split-article - created by Lajos Meszaros <m_lajos@hotmail.com> - MIT licence - last built on 2017-06-07
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define(factory) :
@@ -1800,8 +1800,8 @@ var _toString = function _toString(x, seen) {
   };
 
   //  mapPairs :: (Object, [String]) -> [String]
-  var mapPairs = function(obj, keys$$1) {
-    return _map(function(k) { return _quote(k) + ': ' + recur(obj[k]); }, keys$$1.slice().sort());
+  var mapPairs = function(obj, keys$$2) {
+    return _map(function(k) { return _quote(k) + ': ' + recur(obj[k]); }, keys$$2.slice().sort());
   };
 
   switch (Object.prototype.toString.call(x)) {

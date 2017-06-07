@@ -7,7 +7,7 @@
   "scripts": {
     "build": "rollup -c",
     "build:watch": "npm run build -- --watch",
-    "unit": "mocha --require reify test/*.spec.js",
+    "unit": "mocha --require reify test/**/*.spec.js",
     "unit:watch": "npm run unit -- --watch",
     "watch": "npm-run-all --parallel build:watch examples:watch",
     "examples:watch": "nodemon ./examples/server.js -e js,json,html,css --watch examples --watch dist/*.min.js",
@@ -25,8 +25,8 @@
     "git:forceAdd": "git add --force -u",
     "dist:clean": "rimraf dist || true",
     "dist:stage": "npm run git:forceAdd -- dist",
-    "workspace:save": "npm-run-all \"git:resetToHead\" \"git:createBranch -- workspace-{1}\" \"git:addAll\" \"git:commitNoVerify\" --",
-    "workspace:restore": "npm-run-all \"git:mergeNoCommit -- workspace-{1}\" \"git:resetToHead\"  --"
+    "workspace:save": "stash-to-branch --save",
+    "workspace:restore": "stash-to-branch --restore"
   },
   "pre-commit": [
     "test",
@@ -65,7 +65,8 @@
     "rollup-plugin-uglify": "^1.0.2",
     "rollup-watch": "^4.0.0",
     "semantic-release": "^6.3.6",
-    "standard": "^10.0.2"
+    "standard": "^10.0.2",
+    "stash-to-branch": "^1.0.0"
   },
   "config": {
     "commitizen": {

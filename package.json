@@ -17,9 +17,8 @@
     "semantic-release": "semantic-release pre && npm publish && semantic-release post",
     "commit": "git-cz",
     "commit:again": "git-cz --retry",
-    "git:forceAdd": "git add --force -u",
     "dist:clean": "rimraf dist || true",
-    "dist:stage": "npm run git:forceAdd -- dist",
+    "dist:stage": "git add dist --force -u",
     "workspace:save": "stash-to-branch --save",
     "workspace:restore": "stash-to-branch --restore"
   },

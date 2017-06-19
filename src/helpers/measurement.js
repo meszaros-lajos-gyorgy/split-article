@@ -96,7 +96,7 @@ const checkFullFit = (element, remainingSpaceWithoutMargin, lastMarginBottom) =>
 
 const generateMeasurementText = compose(join(''), repeat('a'))
 
-const getMeasurementWidth = (source, width) => {
+const getMeasurement = (source, width, prop) => {
   const measurement = compose(
     appendTo(source),
     setAttribute('style', 'position:absolute;visibility:hidden'),
@@ -104,12 +104,14 @@ const getMeasurementWidth = (source, width) => {
     createElement
   )('div')
 
-  const result = measurement.getBoundingClientRect().width
+  const result = measurement.getBoundingClientRect()[prop]
 
   removeFrom(source, measurement)
 
   return result
 }
+const getMeasurementWidth = (source, width) => getMeasurement(source, width, 'width')
+const getMeasurementHeight = (source, width) => getMeasurement(source, width, 'height')
 
 export {
   getComputedProperty,
@@ -128,5 +130,6 @@ export {
   checkMinimalFit,
   checkFullFit,
   generateMeasurementText,
-  getMeasurementWidth
+  getMeasurementWidth,
+  getMeasurementHeight
 }

@@ -1,4 +1,4 @@
-// split-article - created by Lajos Meszaros <m_lajos@hotmail.com> - MIT licence - last built on 2017-06-15
+// split-article - created by Lajos Meszaros <m_lajos@hotmail.com> - MIT licence - last built on 2017-06-19
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define(factory) :
@@ -1368,6 +1368,205 @@ var filter = _curry2(_dispatchable(['filter'], _xfilter, function(pred, filterab
  */
 var lt = _curry2(function lt(a, b) { return a < b; });
 
+/**
+ * Returns `true` if the first argument is greater than the second; `false`
+ * otherwise.
+ *
+ * @func
+ * @memberOf R
+ * @since v0.1.0
+ * @category Relation
+ * @sig Ord a => a -> a -> Boolean
+ * @param {*} a
+ * @param {*} b
+ * @return {Boolean}
+ * @see R.lt
+ * @example
+ *
+ *      R.gt(2, 1); //=> true
+ *      R.gt(2, 2); //=> false
+ *      R.gt(2, 3); //=> false
+ *      R.gt('a', 'z'); //=> false
+ *      R.gt('z', 'a'); //=> true
+ */
+var gt = _curry2(function gt(a, b) { return a > b; });
+
+var _complement = function _complement(f) {
+  return function() {
+    return !f.apply(this, arguments);
+  };
+};
+
+/**
+ * The complement of `filter`.
+ *
+ * Acts as a transducer if a transformer is given in list position.
+ *
+ * @func
+ * @memberOf R
+ * @since v0.1.0
+ * @category List
+ * @sig Filterable f => (a -> Boolean) -> f a -> f a
+ * @param {Function} pred
+ * @param {Array} filterable
+ * @return {Array}
+ * @see R.filter, R.transduce, R.addIndex
+ * @example
+ *
+ *      var isOdd = (n) => n % 2 === 1;
+ *
+ *      R.reject(isOdd, [1, 2, 3, 4]); //=> [2, 4]
+ *
+ *      R.reject(isOdd, {a: 1, b: 2, c: 3, d: 4}); //=> {b: 2, d: 4}
+ */
+var reject = _curry2(function reject(pred, filterable) {
+  return filter(_complement(pred), filterable);
+});
+
+/**
+ * Creates a function that will process either the `onTrue` or the `onFalse`
+ * function depending upon the result of the `condition` predicate.
+ *
+ * @func
+ * @memberOf R
+ * @since v0.8.0
+ * @category Logic
+ * @sig (*... -> Boolean) -> (*... -> *) -> (*... -> *) -> (*... -> *)
+ * @param {Function} condition A predicate function
+ * @param {Function} onTrue A function to invoke when the `condition` evaluates to a truthy value.
+ * @param {Function} onFalse A function to invoke when the `condition` evaluates to a falsy value.
+ * @return {Function} A new unary function that will process either the `onTrue` or the `onFalse`
+ *                    function depending upon the result of the `condition` predicate.
+ * @see R.unless, R.when
+ * @example
+ *
+ *      var incCount = R.ifElse(
+ *        R.has('count'),
+ *        R.over(R.lensProp('count'), R.inc),
+ *        R.assoc('count', 1)
+ *      );
+ *      incCount({});           //=> { count: 1 }
+ *      incCount({ count: 1 }); //=> { count: 2 }
+ */
+var ifElse = _curry3(function ifElse(condition, onTrue, onFalse) {
+  return curryN(Math.max(condition.length, onTrue.length, onFalse.length),
+    function _ifElse() {
+      return condition.apply(this, arguments) ? onTrue.apply(this, arguments) : onFalse.apply(this, arguments);
+    }
+  );
+});
+
+/**
+ * Makes a shallow clone of an object, setting or overriding the specified
+ * property with the given value. Note that this copies and flattens prototype
+ * properties onto the new object as well. All non-primitive properties are
+ * copied by reference.
+ *
+ * @func
+ * @memberOf R
+ * @since v0.8.0
+ * @category Object
+ * @sig String -> a -> {k: v} -> {k: v}
+ * @param {String} prop The property name to set
+ * @param {*} val The new value
+ * @param {Object} obj The object to clone
+ * @return {Object} A new object equivalent to the original except for the changed property.
+ * @see R.dissoc
+ * @example
+ *
+ *      R.assoc('c', 3, {a: 1, b: 2}); //=> {a: 1, b: 2, c: 3}
+ */
+var assoc = _curry3(function assoc(prop, val, obj) {
+  var result = {};
+  for (var p in obj) {
+    result[p] = obj[p];
+  }
+  result[prop] = val;
+  return result;
+});
+
+/**
+ * Determine if the passed argument is an integer.
+ *
+ * @private
+ * @param {*} n
+ * @category Type
+ * @return {Boolean}
+ */
+var _isInteger = Number.isInteger || function _isInteger(n) {
+  return (n << 0) === n;
+};
+
+/**
+ * Makes a shallow clone of an object, setting or overriding the nodes required
+ * to create the given path, and placing the specific value at the tail end of
+ * that path. Note that this copies and flattens prototype properties onto the
+ * new object as well. All non-primitive properties are copied by reference.
+ *
+ * @func
+ * @memberOf R
+ * @since v0.8.0
+ * @category Object
+ * @typedefn Idx = String | Int
+ * @sig [Idx] -> a -> {a} -> {a}
+ * @param {Array} path the path to set
+ * @param {*} val The new value
+ * @param {Object} obj The object to clone
+ * @return {Object} A new object equivalent to the original except along the specified path.
+ * @see R.dissocPath
+ * @example
+ *
+ *      R.assocPath(['a', 'b', 'c'], 42, {a: {b: {c: 0}}}); //=> {a: {b: {c: 42}}}
+ *
+ *      // Any missing or non-object keys in path will be overridden
+ *      R.assocPath(['a', 'b', 'c'], 42, {a: 5}); //=> {a: {b: {c: 42}}}
+ */
+var assocPath = _curry3(function assocPath(path, val, obj) {
+  if (path.length === 0) {
+    return val;
+  }
+  var idx = path[0];
+  if (path.length > 1) {
+    var nextObj = _has(idx, obj) ? obj[idx] : _isInteger(path[1]) ? [] : {};
+    val = assocPath(Array.prototype.slice.call(path, 1), val, nextObj);
+  }
+  if (_isInteger(idx) && _isArray(obj)) {
+    var arr = [].concat(obj);
+    arr[idx] = val;
+    return arr;
+  } else {
+    return assoc(idx, val, obj);
+  }
+});
+
+/**
+ * A special placeholder value used to specify "gaps" within curried functions,
+ * allowing partial application of any combination of arguments, regardless of
+ * their positions.
+ *
+ * If `g` is a curried ternary function and `_` is `R.__`, the following are
+ * equivalent:
+ *
+ *   - `g(1, 2, 3)`
+ *   - `g(_, 2, 3)(1)`
+ *   - `g(_, _, 3)(1)(2)`
+ *   - `g(_, _, 3)(1, 2)`
+ *   - `g(_, 2, _)(1, 3)`
+ *   - `g(_, 2)(1)(3)`
+ *   - `g(_, 2)(1, 3)`
+ *   - `g(_, 2)(_, 3)(1)`
+ *
+ * @constant
+ * @memberOf R
+ * @since v0.6.0
+ * @category Function
+ * @example
+ *
+ *      var greet = R.replace('{name}', R.__, 'Hello, {name}!');
+ *      greet('Alice'); //=> 'Hello, Alice!'
+ */
+var __ = {'@@functional/placeholder': true};
+
 var _arrayFromIterator = function _arrayFromIterator(iter) {
   var list = [];
   var next;
@@ -1761,38 +1960,6 @@ var _toISOString = (function() {
     };
 }());
 
-var _complement = function _complement(f) {
-  return function() {
-    return !f.apply(this, arguments);
-  };
-};
-
-/**
- * The complement of `filter`.
- *
- * Acts as a transducer if a transformer is given in list position.
- *
- * @func
- * @memberOf R
- * @since v0.1.0
- * @category List
- * @sig Filterable f => (a -> Boolean) -> f a -> f a
- * @param {Function} pred
- * @param {Array} filterable
- * @return {Array}
- * @see R.filter, R.transduce, R.addIndex
- * @example
- *
- *      var isOdd = (n) => n % 2 === 1;
- *
- *      R.reject(isOdd, [1, 2, 3, 4]); //=> [2, 4]
- *
- *      R.reject(isOdd, {a: 1, b: 2, c: 3, d: 4}); //=> {b: 2, d: 4}
- */
-var reject = _curry2(function reject(pred, filterable) {
-  return filter(_complement(pred), filterable);
-});
-
 var _toString = function _toString(x, seen) {
   var recur = function recur(y) {
     var xs = seen.concat([x]);
@@ -2134,7 +2301,7 @@ var checkFullFit = function (element, remainingSpaceWithoutMargin, lastMarginBot
 
 var generateMeasurementText = compose(join(''), repeat('a'));
 
-var getMeasurementWidth = function (source, width) {
+var getMeasurement = function (source, width, prop) {
   var measurement = compose(
     appendTo(source),
     setAttribute('style', 'position:absolute;visibility:hidden'),
@@ -2142,12 +2309,14 @@ var getMeasurementWidth = function (source, width) {
     createElement
   )('div');
 
-  var result = measurement.getBoundingClientRect().width;
+  var result = measurement.getBoundingClientRect()[prop];
 
   removeFrom(source, measurement);
 
   return result
 };
+var getMeasurementWidth = function (source, width) { return getMeasurement(source, width, 'width'); };
+var getMeasurementHeight = function (source, width) { return getMeasurement(source, width, 'height'); };
 
 /**
  * Decrements its argument.
@@ -2265,29 +2434,6 @@ var findIndex = _curry2(_dispatchable([], _xfindIndex, function findIndex(fn, li
 var when = _curry3(function when(pred, whenTrueFn, x) {
   return pred(x) ? whenTrueFn(x) : x;
 });
-
-/**
- * Returns `true` if the first argument is greater than the second; `false`
- * otherwise.
- *
- * @func
- * @memberOf R
- * @since v0.1.0
- * @category Relation
- * @sig Ord a => a -> a -> Boolean
- * @param {*} a
- * @param {*} b
- * @return {Boolean}
- * @see R.lt
- * @example
- *
- *      R.gt(2, 1); //=> true
- *      R.gt(2, 2); //=> false
- *      R.gt(2, 3); //=> false
- *      R.gt('a', 'z'); //=> false
- *      R.gt('z', 'a'); //=> true
- */
-var gt = _curry2(function gt(a, b) { return a > b; });
 
 /**
  * Creates a new list iteration function from an existing one by adding two new
@@ -2502,67 +2648,6 @@ var getNextTarget = function (targets) {
 };
 
 /**
- * Creates a function that will process either the `onTrue` or the `onFalse`
- * function depending upon the result of the `condition` predicate.
- *
- * @func
- * @memberOf R
- * @since v0.8.0
- * @category Logic
- * @sig (*... -> Boolean) -> (*... -> *) -> (*... -> *) -> (*... -> *)
- * @param {Function} condition A predicate function
- * @param {Function} onTrue A function to invoke when the `condition` evaluates to a truthy value.
- * @param {Function} onFalse A function to invoke when the `condition` evaluates to a falsy value.
- * @return {Function} A new unary function that will process either the `onTrue` or the `onFalse`
- *                    function depending upon the result of the `condition` predicate.
- * @see R.unless, R.when
- * @example
- *
- *      var incCount = R.ifElse(
- *        R.has('count'),
- *        R.over(R.lensProp('count'), R.inc),
- *        R.assoc('count', 1)
- *      );
- *      incCount({});           //=> { count: 1 }
- *      incCount({ count: 1 }); //=> { count: 2 }
- */
-var ifElse = _curry3(function ifElse(condition, onTrue, onFalse) {
-  return curryN(Math.max(condition.length, onTrue.length, onFalse.length),
-    function _ifElse() {
-      return condition.apply(this, arguments) ? onTrue.apply(this, arguments) : onFalse.apply(this, arguments);
-    }
-  );
-});
-
-/**
- * A special placeholder value used to specify "gaps" within curried functions,
- * allowing partial application of any combination of arguments, regardless of
- * their positions.
- *
- * If `g` is a curried ternary function and `_` is `R.__`, the following are
- * equivalent:
- *
- *   - `g(1, 2, 3)`
- *   - `g(_, 2, 3)(1)`
- *   - `g(_, _, 3)(1)(2)`
- *   - `g(_, _, 3)(1, 2)`
- *   - `g(_, 2, _)(1, 3)`
- *   - `g(_, 2)(1)(3)`
- *   - `g(_, 2)(1, 3)`
- *   - `g(_, 2)(_, 3)(1)`
- *
- * @constant
- * @memberOf R
- * @since v0.6.0
- * @category Function
- * @example
- *
- *      var greet = R.replace('{name}', R.__, 'Hello, {name}!');
- *      greet('Alice'); //=> 'Hello, Alice!'
- */
-var __ = {'@@functional/placeholder': true};
-
-/**
  * Replace a substring or regex match in a string with a replacement.
  *
  * @func
@@ -2584,35 +2669,6 @@ var __ = {'@@functional/placeholder': true};
  */
 var replace = _curry3(function replace(regex, replacement, str) {
   return str.replace(regex, replacement);
-});
-
-/**
- * Makes a shallow clone of an object, setting or overriding the specified
- * property with the given value. Note that this copies and flattens prototype
- * properties onto the new object as well. All non-primitive properties are
- * copied by reference.
- *
- * @func
- * @memberOf R
- * @since v0.8.0
- * @category Object
- * @sig String -> a -> {k: v} -> {k: v}
- * @param {String} prop The property name to set
- * @param {*} val The new value
- * @param {Object} obj The object to clone
- * @return {Object} A new object equivalent to the original except for the changed property.
- * @see R.dissoc
- * @example
- *
- *      R.assoc('c', 3, {a: 1, b: 2}); //=> {a: 1, b: 2, c: 3}
- */
-var assoc = _curry3(function assoc(prop, val, obj) {
-  var result = {};
-  for (var p in obj) {
-    result[p] = obj[p];
-  }
-  result[prop] = val;
-  return result;
 });
 
 /**
@@ -3387,7 +3443,9 @@ var render = function (columns, elements, measuredWidth) {
     } else {
       // doesn't fit at all
 
-      updateMargin('bottom', 0, lastChildInColumn);
+      if (length(childrenInColumn)) {
+        updateMargin('bottom', 0, lastChildInColumn);
+      }
       updateMargin('top', 0, clonedChild);
 
       currentColumnIndex++;
@@ -3401,7 +3459,7 @@ var render = function (columns, elements, measuredWidth) {
 
   removeFrom(elements[0].parentNode, duplicatedChildrenHolder);
 
-  return length(elementsToRender) > 0
+  return gt(length(elementsToRender), 0)
 };
 
 function splitArticle (rawConfig) {
@@ -3409,23 +3467,36 @@ function splitArticle (rawConfig) {
   setAttribute('style', 'height:0;position:absolute;overflow:hidden', config.source);
 
   var measuredWidth = getMeasurementWidth(config.source, config.width);
+  var measuredHeight = getMeasurementHeight(config.source, config.width);
   config.source.style.width = measuredWidth + 'px';
 
-  var sourceChildren = slice(config.offset, config.limit, children(config.source));
-
-  forEach(setInnerHTML(''), config.targets);
-
-  do {
-    addColumnTo(measuredWidth, getNextTarget(config.targets));
-  } while (render(getColumns(config.targets), sourceChildren, measuredWidth))
-
-  compose(
-    map(updateMargin('left', config.gap)),
-    flatten,
-    map(tail),
-    filter(compose(lt(1), length)),
-    getColumnsPerTarget
+  config.targets = compose(
+    reject(function (target) { return target.tooLittle === true; }),
+    map(ifElse(
+      compose(gt(measuredHeight, __), getFullContentHeight),
+      compose(
+        assoc('tooLittle', true),
+        assocPath(['style', 'display'], 'none')
+      ),
+      setInnerHTML('')
+    ))
   )(config.targets);
+
+  if (length(config.targets)) {
+    var sourceChildren = slice(config.offset, config.limit, children(config.source));
+
+    do {
+      addColumnTo(measuredWidth, getNextTarget(config.targets));
+    } while (render(getColumns(config.targets), sourceChildren, measuredWidth))
+
+    compose(
+      map(updateMargin('left', config.gap)),
+      flatten,
+      map(tail),
+      filter(compose(lt(1), length)),
+      getColumnsPerTarget
+    )(config.targets);
+  }
 }
 
 splitArticle.watch = function (rawConfig) {

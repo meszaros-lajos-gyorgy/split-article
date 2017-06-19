@@ -22,7 +22,13 @@ import {
   clone,
   filter,
   tail,
-  lt
+  lt,
+  gt,
+  reject,
+  ifElse,
+  assoc,
+  assocPath,
+  __
 } from 'ramda'
 
 import {
@@ -32,7 +38,9 @@ import {
   checkMinimalFit,
   checkFullFit,
   getBoxHeight,
-  getMeasurementWidth
+  getMeasurementWidth,
+  getMeasurementHeight,
+  getFullContentHeight
 } from './helpers/measurement'
 
 import {
@@ -123,7 +131,9 @@ const render = (columns, elements, measuredWidth) => {
     } else {
       // doesn't fit at all
 
-      updateMargin('bottom', 0, lastChildInColumn)
+      if (length(childrenInColumn)) {
+        updateMargin('bottom', 0, lastChildInColumn)
+      }
       updateMargin('top', 0, clonedChild)
 
       currentColumnIndex++
@@ -137,7 +147,7 @@ const render = (columns, elements, measuredWidth) => {
 
   removeFrom(elements[0].parentNode, duplicatedChildrenHolder)
 
-  return length(elementsToRender) > 0
+  return gt(length(elementsToRender), 0)
 }
 
 function splitArticle (rawConfig) {
@@ -145,23 +155,36 @@ function splitArticle (rawConfig) {
   setAttribute('style', 'height:0;position:absolute;overflow:hidden', config.source)
 
   const measuredWidth = getMeasurementWidth(config.source, config.width)
+  const measuredHeight = getMeasurementHeight(config.source, config.width)
   config.source.style.width = measuredWidth + 'px'
 
-  const sourceChildren = slice(config.offset, config.limit, children(config.source))
-
-  forEach(setInnerHTML(''), config.targets)
-
-  do {
-    addColumnTo(measuredWidth, getNextTarget(config.targets))
-  } while (render(getColumns(config.targets), sourceChildren, measuredWidth))
-
-  compose(
-    map(updateMargin('left', config.gap)),
-    flatten,
-    map(tail),
-    filter(compose(lt(1), length)),
-    getColumnsPerTarget
+  config.targets = compose(
+    reject(target => target.tooLittle === true),
+    map(ifElse(
+      compose(gt(measuredHeight, __), getFullContentHeight),
+      compose(
+        assoc('tooLittle', true),
+        assocPath(['style', 'display'], 'none')
+      ),
+      setInnerHTML('')
+    ))
   )(config.targets)
+
+  if (length(config.targets)) {
+    const sourceChildren = slice(config.offset, config.limit, children(config.source))
+
+    do {
+      addColumnTo(measuredWidth, getNextTarget(config.targets))
+    } while (render(getColumns(config.targets), sourceChildren, measuredWidth))
+
+    compose(
+      map(updateMargin('left', config.gap)),
+      flatten,
+      map(tail),
+      filter(compose(lt(1), length)),
+      getColumnsPerTarget
+    )(config.targets)
+  }
 }
 
 splitArticle.watch = rawConfig => {

@@ -1,13 +1,13 @@
 import {
   compose,
-  contains,
   curry,
   equals,
   head,
   last,
   not,
   join,
-  repeat
+  repeat,
+  length
 } from 'ramda'
 
 import {
@@ -28,21 +28,23 @@ const getBorderBottom = compose(parseFloat, getComputedProperty('border-bottom-w
 const getMarginTop = compose(parseFloat, getComputedProperty('margin-top'))
 const getMarginBottom = compose(parseFloat, getComputedProperty('margin-bottom'))
 
-// todo: can we move element out to the end?
-const isOutpositioned = element => contains(getComputedProperty('position', element), ['absolute', 'fixed'])
+const isPositionedAbsolute = element => getComputedProperty('position', element) === 'absolute'
+const isPositionedFixed = element => getComputedProperty('position', element) === 'fixed'
 const isFloating = element => not(equals('none', getComputedProperty('float', element)))
 
 const getFullContentHeight = element => {
   let removeThisToo = 0
 
-  if (isOutpositioned(element) || isFloating(element)) {
-    removeThisToo += getMarginTop(head(children(element)))
-    removeThisToo += getMarginBottom(last(children(element)))
+  if (isPositionedAbsolute(element) || isPositionedFixed(element) || isFloating(element)) {
+    if (length(children(element)) > 0) {
+      removeThisToo += getMarginTop(head(children(element)))
+      removeThisToo += getMarginBottom(last(children(element)))
+    }
   } else {
-    if (getBorderTop(element)) {
+    if (getBorderTop(element) && length(children(element)) > 0) {
       removeThisToo += getMarginTop(head(children(element)))
     }
-    if (getBorderBottom(element)) {
+    if (getBorderBottom(element) && length(children(element)) > 0) {
       removeThisToo += getMarginBottom(last(children(element)))
     }
   }
@@ -115,7 +117,8 @@ const getMeasurementHeight = (source, width) => getMeasurement(source, width, 'h
 
 export {
   getComputedProperty,
-  isOutpositioned,
+  isPositionedAbsolute,
+  isPositionedFixed,
   isFloating,
   getFullContentHeight,
   getVisibleContentHeight,

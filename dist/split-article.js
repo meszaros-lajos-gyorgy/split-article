@@ -1567,6 +1567,51 @@ var assocPath = _curry3(function assocPath(path, val, obj) {
  */
 var __ = {'@@functional/placeholder': true};
 
+/**
+ * Returns a curried equivalent of the provided function. The curried function
+ * has two unusual capabilities. First, its arguments needn't be provided one
+ * at a time. If `f` is a ternary function and `g` is `R.curry(f)`, the
+ * following are equivalent:
+ *
+ *   - `g(1)(2)(3)`
+ *   - `g(1)(2, 3)`
+ *   - `g(1, 2)(3)`
+ *   - `g(1, 2, 3)`
+ *
+ * Secondly, the special placeholder value `R.__` may be used to specify
+ * "gaps", allowing partial application of any combination of arguments,
+ * regardless of their positions. If `g` is as above and `_` is `R.__`, the
+ * following are equivalent:
+ *
+ *   - `g(1, 2, 3)`
+ *   - `g(_, 2, 3)(1)`
+ *   - `g(_, _, 3)(1)(2)`
+ *   - `g(_, _, 3)(1, 2)`
+ *   - `g(_, 2)(1)(3)`
+ *   - `g(_, 2)(1, 3)`
+ *   - `g(_, 2)(_, 3)(1)`
+ *
+ * @func
+ * @memberOf R
+ * @since v0.1.0
+ * @category Function
+ * @sig (* -> a) -> (* -> a)
+ * @param {Function} fn The function to curry.
+ * @return {Function} A new, curried function.
+ * @see R.curryN
+ * @example
+ *
+ *      var addFourNumbers = (a, b, c, d) => a + b + c + d;
+ *
+ *      var curriedAddFourNumbers = R.curry(addFourNumbers);
+ *      var f = curriedAddFourNumbers(1, 2);
+ *      var g = f(3);
+ *      g(4); //=> 10
+ */
+var curry = _curry1(function curry(fn) {
+  return curryN(fn.length, fn);
+});
+
 var _arrayFromIterator = function _arrayFromIterator(iter) {
   var list = [];
   var next;
@@ -1747,6 +1792,56 @@ var equals = _curry2(function equals(a, b) {
   return _equals(a, b, [], []);
 });
 
+/**
+ * Returns the first element of the given list or string. In some libraries
+ * this function is named `first`.
+ *
+ * @func
+ * @memberOf R
+ * @since v0.1.0
+ * @category List
+ * @sig [a] -> a | Undefined
+ * @sig String -> String
+ * @param {Array|String} list
+ * @return {*}
+ * @see R.tail, R.init, R.last
+ * @example
+ *
+ *      R.head(['fi', 'fo', 'fum']); //=> 'fi'
+ *      R.head([]); //=> undefined
+ *
+ *      R.head('abc'); //=> 'a'
+ *      R.head(''); //=> ''
+ */
+var head = nth(0);
+
+/**
+ * A function that returns the `!` of its argument. It will return `true` when
+ * passed false-y value, and `false` when passed a truth-y one.
+ *
+ * @func
+ * @memberOf R
+ * @since v0.1.0
+ * @category Logic
+ * @sig * -> Boolean
+ * @param {*} a any value
+ * @return {Boolean} the logical inverse of passed argument.
+ * @see R.complement
+ * @example
+ *
+ *      R.not(true); //=> false
+ *      R.not(false); //=> true
+ *      R.not(0); //=> true
+ *      R.not(1); //=> false
+ */
+var not = _curry1(function not(a) {
+  return !a;
+});
+
+var _isFunction = function _isFunction(x) {
+  return Object.prototype.toString.call(x) === '[object Function]';
+};
+
 var _indexOf = function _indexOf(list, a, idx) {
   var inf, item;
   // Array.prototype.indexOf doesn't exist below IE9
@@ -1804,123 +1899,6 @@ var _indexOf = function _indexOf(list, a, idx) {
 
 var _contains = function _contains(a, list) {
   return _indexOf(list, a, 0) >= 0;
-};
-
-/**
- * Returns `true` if the specified value is equal, in `R.equals` terms, to at
- * least one element of the given list; `false` otherwise.
- *
- * @func
- * @memberOf R
- * @since v0.1.0
- * @category List
- * @sig a -> [a] -> Boolean
- * @param {Object} a The item to compare against.
- * @param {Array} list The array to consider.
- * @return {Boolean} `true` if an equivalent item is in the list, `false` otherwise.
- * @see R.any
- * @example
- *
- *      R.contains(3, [1, 2, 3]); //=> true
- *      R.contains(4, [1, 2, 3]); //=> false
- *      R.contains({ name: 'Fred' }, [{ name: 'Fred' }]); //=> true
- *      R.contains([42], [[42]]); //=> true
- */
-var contains = _curry2(_contains);
-
-/**
- * Returns a curried equivalent of the provided function. The curried function
- * has two unusual capabilities. First, its arguments needn't be provided one
- * at a time. If `f` is a ternary function and `g` is `R.curry(f)`, the
- * following are equivalent:
- *
- *   - `g(1)(2)(3)`
- *   - `g(1)(2, 3)`
- *   - `g(1, 2)(3)`
- *   - `g(1, 2, 3)`
- *
- * Secondly, the special placeholder value `R.__` may be used to specify
- * "gaps", allowing partial application of any combination of arguments,
- * regardless of their positions. If `g` is as above and `_` is `R.__`, the
- * following are equivalent:
- *
- *   - `g(1, 2, 3)`
- *   - `g(_, 2, 3)(1)`
- *   - `g(_, _, 3)(1)(2)`
- *   - `g(_, _, 3)(1, 2)`
- *   - `g(_, 2)(1)(3)`
- *   - `g(_, 2)(1, 3)`
- *   - `g(_, 2)(_, 3)(1)`
- *
- * @func
- * @memberOf R
- * @since v0.1.0
- * @category Function
- * @sig (* -> a) -> (* -> a)
- * @param {Function} fn The function to curry.
- * @return {Function} A new, curried function.
- * @see R.curryN
- * @example
- *
- *      var addFourNumbers = (a, b, c, d) => a + b + c + d;
- *
- *      var curriedAddFourNumbers = R.curry(addFourNumbers);
- *      var f = curriedAddFourNumbers(1, 2);
- *      var g = f(3);
- *      g(4); //=> 10
- */
-var curry = _curry1(function curry(fn) {
-  return curryN(fn.length, fn);
-});
-
-/**
- * Returns the first element of the given list or string. In some libraries
- * this function is named `first`.
- *
- * @func
- * @memberOf R
- * @since v0.1.0
- * @category List
- * @sig [a] -> a | Undefined
- * @sig String -> String
- * @param {Array|String} list
- * @return {*}
- * @see R.tail, R.init, R.last
- * @example
- *
- *      R.head(['fi', 'fo', 'fum']); //=> 'fi'
- *      R.head([]); //=> undefined
- *
- *      R.head('abc'); //=> 'a'
- *      R.head(''); //=> ''
- */
-var head = nth(0);
-
-/**
- * A function that returns the `!` of its argument. It will return `true` when
- * passed false-y value, and `false` when passed a truth-y one.
- *
- * @func
- * @memberOf R
- * @since v0.1.0
- * @category Logic
- * @sig * -> Boolean
- * @param {*} a any value
- * @return {Boolean} the logical inverse of passed argument.
- * @see R.complement
- * @example
- *
- *      R.not(true); //=> false
- *      R.not(false); //=> true
- *      R.not(0); //=> true
- *      R.not(1); //=> false
- */
-var not = _curry1(function not(a) {
-  return !a;
-});
-
-var _isFunction = function _isFunction(x) {
-  return Object.prototype.toString.call(x) === '[object Function]';
 };
 
 var _quote = function _quote(s) {
@@ -2183,6 +2161,28 @@ var repeat = _curry2(function repeat(value, n) {
   return times(always(value), n);
 });
 
+/**
+ * Returns `true` if the specified value is equal, in `R.equals` terms, to at
+ * least one element of the given list; `false` otherwise.
+ *
+ * @func
+ * @memberOf R
+ * @since v0.1.0
+ * @category List
+ * @sig a -> [a] -> Boolean
+ * @param {Object} a The item to compare against.
+ * @param {Array} list The array to consider.
+ * @return {Boolean} `true` if an equivalent item is in the list, `false` otherwise.
+ * @see R.any
+ * @example
+ *
+ *      R.contains(3, [1, 2, 3]); //=> true
+ *      R.contains(4, [1, 2, 3]); //=> false
+ *      R.contains({ name: 'Fred' }, [{ name: 'Fred' }]); //=> true
+ *      R.contains([42], [[42]]); //=> true
+ */
+var contains = _curry2(_contains);
+
 var cloneNode = function (node) { return node.cloneNode(true); };
 var shallowCloneNode = function (node) { return node.cloneNode(); };
 
@@ -2234,21 +2234,23 @@ var getBorderBottom = compose(parseFloat, getComputedProperty('border-bottom-wid
 var getMarginTop = compose(parseFloat, getComputedProperty('margin-top'));
 var getMarginBottom = compose(parseFloat, getComputedProperty('margin-bottom'));
 
-// todo: can we move element out to the end?
-var isOutpositioned = function (element) { return contains(getComputedProperty('position', element), ['absolute', 'fixed']); };
+var isPositionedAbsolute = function (element) { return getComputedProperty('position', element) === 'absolute'; };
+var isPositionedFixed = function (element) { return getComputedProperty('position', element) === 'fixed'; };
 var isFloating = function (element) { return not(equals('none', getComputedProperty('float', element))); };
 
 var getFullContentHeight = function (element) {
   var removeThisToo = 0;
 
-  if (isOutpositioned(element) || isFloating(element)) {
-    removeThisToo += getMarginTop(head(children(element)));
-    removeThisToo += getMarginBottom(last(children(element)));
+  if (isPositionedAbsolute(element) || isPositionedFixed(element) || isFloating(element)) {
+    if (length(children(element)) > 0) {
+      removeThisToo += getMarginTop(head(children(element)));
+      removeThisToo += getMarginBottom(last(children(element)));
+    }
   } else {
-    if (getBorderTop(element)) {
+    if (getBorderTop(element) && length(children(element)) > 0) {
       removeThisToo += getMarginTop(head(children(element)));
     }
-    if (getBorderBottom(element)) {
+    if (getBorderBottom(element) && length(children(element)) > 0) {
       removeThisToo += getMarginBottom(last(children(element)));
     }
   }

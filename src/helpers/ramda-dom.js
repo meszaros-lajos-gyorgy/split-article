@@ -29,8 +29,8 @@ const setTextContent = curry((content, node) => {
   return node
 })
 
-const setAttribute = curry((key, value, node) => {
-  node[key] = value
+const setStyle = curry((value, node) => {
+  node.style.cssText = value
   return node
 })
 
@@ -54,7 +54,7 @@ export {
   getInnerHTML,
   getOuterHTML,
   setTextContent,
-  setAttribute,
+  setStyle,
   updateMargin,
   children,
   createElement

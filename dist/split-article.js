@@ -1,4 +1,4 @@
-// split-article - created by Lajos Meszaros <m_lajos@hotmail.com> - MIT licence - last built on 2017-08-21
+// split-article - created by Lajos Meszaros <m_lajos@hotmail.com> - MIT licence - last built on 2017-09-05
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define(factory) :
@@ -2209,8 +2209,8 @@ var setTextContent = curry(function (content, node) {
   return node
 });
 
-var setAttribute = curry(function (key, value, node) {
-  node[key] = value;
+var setStyle = curry(function (value, node) {
+  node.style.cssText = value;
   return node
 });
 
@@ -2272,7 +2272,7 @@ var getSpace = function (element) {
   var space = compose(
     setTextContent('W'),
     appendTo(element),
-    setAttribute('style', 'display:inline-block'),
+    setStyle('display:inline-block'),
     createElement
   )('span');
 
@@ -2306,7 +2306,7 @@ var generateMeasurementText = compose(join(''), repeat('a'));
 var getMeasurement = function (source, width, prop) {
   var measurement = compose(
     appendTo(source),
-    setAttribute('style', 'position:absolute;visibility:hidden'),
+    setStyle('position:absolute;visibility:hidden'),
     setTextContent(generateMeasurementText(width)),
     createElement
   )('div');
@@ -2610,7 +2610,7 @@ var getColumnsPerTarget = map(children);
 var getColumns = compose(flatten, getColumnsPerTarget);
 
 var createColumn = function (width) { return compose(
-  setAttribute('style', 'display:inline-block;height:100%;vertical-align:top;width:' + width + 'px'),
+  setStyle('display:inline-block;height:100%;vertical-align:top;width:' + width + 'px'),
   createElement
 )('div'); };
 
@@ -3466,7 +3466,7 @@ var render = function (columns, elements, measuredWidth) {
 
 function splitArticle (rawConfig) {
   var config = merge(DEFAULT_CONFIG, rawConfig);
-  setAttribute('style', 'height:0;position:absolute;overflow:hidden', config.source);
+  setStyle('height:0;position:absolute;overflow:hidden', config.source);
 
   var measuredWidth = getMeasurementWidth(config.source, config.width);
   var measuredHeight = getMeasurementHeight(config.source, config.width);

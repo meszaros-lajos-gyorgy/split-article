@@ -21,7 +21,7 @@ import {
 import {
   appendTo,
   children,
-  setAttribute,
+  setStyle,
   createElement
 } from './ramda-dom'
 
@@ -34,7 +34,7 @@ const getColumnsPerTarget = map(children)
 const getColumns = compose(flatten, getColumnsPerTarget)
 
 const createColumn = width => compose(
-  setAttribute('style', 'display:inline-block;height:100%;vertical-align:top;width:' + width + 'px'),
+  setStyle('display:inline-block;height:100%;vertical-align:top;width:' + width + 'px'),
   createElement
 )('div')
 

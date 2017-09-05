@@ -15,7 +15,7 @@ import {
   removeFrom,
   children,
   setTextContent,
-  setAttribute,
+  setStyle,
   createElement
 } from './ramda-dom'
 
@@ -67,7 +67,7 @@ const getSpace = element => {
   const space = compose(
     setTextContent('W'),
     appendTo(element),
-    setAttribute('style', 'display:inline-block'),
+    setStyle('display:inline-block'),
     createElement
   )('span')
 
@@ -101,7 +101,7 @@ const generateMeasurementText = compose(join(''), repeat('a'))
 const getMeasurement = (source, width, prop) => {
   const measurement = compose(
     appendTo(source),
-    setAttribute('style', 'position:absolute;visibility:hidden'),
+    setStyle('position:absolute;visibility:hidden'),
     setTextContent(generateMeasurementText(width)),
     createElement
   )('div')

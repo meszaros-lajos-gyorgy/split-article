@@ -55,7 +55,7 @@ import {
   appendTo,
   removeFrom,
   setInnerHTML,
-  setAttribute,
+  setStyle,
   updateMargin,
   children
 } from './helpers/ramda-dom'
@@ -152,7 +152,7 @@ const render = (columns, elements, measuredWidth) => {
 
 function splitArticle (rawConfig) {
   const config = merge(DEFAULT_CONFIG, rawConfig)
-  setAttribute('style', 'height:0;position:absolute;overflow:hidden', config.source)
+  setStyle('height:0;position:absolute;overflow:hidden', config.source)
 
   const measuredWidth = getMeasurementWidth(config.source, config.width)
   const measuredHeight = getMeasurementHeight(config.source, config.width)

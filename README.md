@@ -79,6 +79,10 @@ final element. *(see offset config property)*
 > When there are multiple columns in a target, then columns are separated by
 a gap, which can accepty any CSS width value.
 
+**maxColumnsGetter :** *(optional)* `function`
+
+> TODO: add description
+
 ### License
 
 MIT

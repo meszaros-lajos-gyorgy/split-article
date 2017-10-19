@@ -45,3 +45,7 @@ body{
 .typeF{
   height: 0;
 }
+
+[data-maxcolumns]{
+  background: yellow;
+}

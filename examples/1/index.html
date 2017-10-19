@@ -79,7 +79,7 @@
   <div id="target">
     <div class="container typeA"></div>
     <div class="container typeB"></div>
-    <div class="container typeA"></div>
+    <div class="container typeA" data-maxcolumns="1"></div>
     <div class="container typeC"></div>
     <div class="container typeA"></div>
     <div class="container typeD"></div>
@@ -94,6 +94,18 @@
 splitArticle.watch({
   source: document.getElementById('source'),
   targets: Array.from(document.getElementById('target').querySelectorAll('.container')),
+  maxColumnsGetter: el => {
+    let maxColumns = Infinity
+    
+    if(el.hasAttribute('data-maxcolumns')){
+      const value = parseInt(el.getAttribute('data-maxcolumns'))
+      if(!isNaN(value) && value >= 0){
+        maxColumns = value
+      }
+    }
+
+    return maxColumns
+  },
   // limit: 15,
   width: 50
 })

@@ -75,7 +75,8 @@ const DEFAULT_CONFIG = {
   speed: 200,
   offset: 0,
   limit: Infinity,
-  gap: '30px'
+  gap: '30px',
+  maxColumnsGetter: () => Infinity
 }
 
 const render = (columns, elements, measuredWidth) => {
@@ -173,10 +174,14 @@ function splitArticle (rawConfig) {
   if (length(config.targets)) {
     const sourceChildren = slice(config.offset, config.limit, children(config.source))
 
+    let targets = config.targets
+
     do {
-      addColumnTo(measuredWidth, getNextTarget(config.targets))
+      targets = reject(target => length(children(target)) >= config.maxColumnsGetter(target), targets)
+      addColumnTo(measuredWidth, getNextTarget(targets))
     } while (render(getColumns(config.targets), sourceChildren, measuredWidth))
 
+    // add margin-left to every column in target, except the first
     compose(
       map(updateMargin('left', config.gap)),
       flatten,

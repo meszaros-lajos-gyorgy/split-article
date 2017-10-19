@@ -3855,7 +3855,8 @@ var DEFAULT_CONFIG = {
   speed: 200,
   offset: 0,
   limit: Infinity,
-  gap: '30px'
+  gap: '30px',
+  maxColumnsGetter: function () { return Infinity; }
 };
 
 var render = function (columns, elements, measuredWidth) {
@@ -3961,10 +3962,14 @@ function splitArticle (rawConfig) {
   if (length_1(config.targets)) {
     var sourceChildren = slice_1(config.offset, config.limit, children(config.source));
 
+    var targets = config.targets;
+
     do {
-      addColumnTo(measuredWidth, getNextTarget(config.targets));
+      targets = reject_1(function (target) { return length_1(children(target)) >= config.maxColumnsGetter(target); }, targets);
+      addColumnTo(measuredWidth, getNextTarget(targets));
     } while (render(getColumns(config.targets), sourceChildren, measuredWidth))
 
+    // add margin-left to every column in target, except the first
     compose_1(
       map_1(updateMargin('left', config.gap)),
       flatten_1,

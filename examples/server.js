@@ -1,47 +1,65 @@
-const express = require('express')
 const reload = require('reload')
-const fs = require('fs')
+const express = require('express')
 const http = require('http')
 const path = require('path')
+const fs = require('fs')
+const {
+  append,
+  curryN,
+  unless,
+  of
+} = require('ramda')
 
-const app = express()
-const server = http.createServer(app)
+// -------------
 
-let projectName = ''
+const getProjectName = () => require('../package.json').name
 
-fs.readFile(path.join(__dirname, '../package.json'), 'utf8', (err, rawData) => {
-  try{
-    const data = JSON.parse(rawData)
-    projectName = data.name
-  }catch(e){}
+const wrapInArrayIfNeeded = unless(Array.isArray, of)
+
+const filterSeries = curryN(2, (fn, [current, ...remaining], results = []) => {
+  if (current) {
+    return fn.apply(fn, wrapInArrayIfNeeded(current))
+      .then(result => {
+        if(result){
+          results = append(current, results)
+        }
+
+        if (remaining.length) {
+          return filterSeries(fn, remaining, results)
+        } else {
+          return Promise.resolve(results)
+        }
+      })
+  } else {
+    return Promise.resolve(results)
+  }
 })
 
-reload(server, app)
+const isDirectoryPromise = fileName => new Promise((resolve, reject) => {
+  fs.lstat(path.join(__dirname, fileName), (err, stats) => {
+    resolve(stats && stats.isDirectory())
+  })
+})
 
 const fetchExampleFolders = () => new Promise((resolve, reject) => {
   fs.readdir(__dirname, (err, files) => {
     if(err){
       reject(err)
     }else{
-      const folders = []
-      let tasksToGo = files.length
-      
-      files
-        .forEach(file => fs.lstat(path.join(__dirname, file), (err, stats) => {
-          if(stats && stats.isDirectory()){
-            folders.push(file)
-          }
-          if(--tasksToGo === 0){
-            resolve(folders)
-          }
-        }))
+      filterSeries(isDirectoryPromise, files)
+        .then(files => resolve(files))
     }
   })
 })
 
-app.get('/reload.js', (req, res) => {
-  res.sendFile(path.join(__dirname, '../node_modules/reload/lib/reload-client.js'))
-})
+// -------------
+
+const app = express()
+
+const projectName = getProjectName()
+
+const server = http.createServer(app)
+reload(app)
 
 app.get('/', (req, res) => fetchExampleFolders()
   .then(folders => {
@@ -60,7 +78,7 @@ app.get('/', (req, res) => fetchExampleFolders()
 <body>
   <h1>Example uses of "${projectName}"</h1>
   ${pages}
-  <script src="/reload.js"></script>
+  <script src="/reload/reload.js"></script>
 </body>
 </html>`)
     res.end()

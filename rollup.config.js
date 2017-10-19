@@ -18,12 +18,14 @@ const config = JSON.parse(fs.readFileSync('package.json'))
 const banner = `// ${config.name} - created by ${config.author} - ${config.license} licence - last built on ${getDate()}`
 
 export default [{
+  input: 'src/index.js',
+  name: 'splitArticle',
+  sourcemap: false,
+  output: {
+    file: 'dist/split-article.js',
+    format: 'umd',
+  },
   banner: banner,
-  entry: 'src/index.js',
-  dest: 'dist/split-article.js',
-  format: 'umd',
-  moduleName: 'splitArticle',
-  sourceMap: false,
   plugins: [
     resolve({
       jsnext: true,
@@ -38,11 +40,13 @@ export default [{
     buble()
   ]
 }, {
-  entry: 'src/index.js',
-  dest: 'dist/split-article.min.js',
-  format: 'umd',
-  moduleName: 'splitArticle',
-  sourceMap: true,
+  input: 'src/index.js',
+  name: 'splitArticle',
+  sourcemap: true,
+  output: {
+    file: 'dist/split-article.min.js',
+    format: 'umd',
+  },
   plugins: [
     resolve({
       jsnext: true,
@@ -56,9 +60,9 @@ export default [{
     ramda(),
     buble(),
     uglify({
-			output: {
-				preamble: banner
-			}
-		})
+      output: {
+        preamble: banner
+      }
+    })
   ]
 }]

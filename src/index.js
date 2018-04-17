@@ -15,6 +15,7 @@ import {
   last,
   length,
   max,
+  min,
   sum,
   apply,
   flatten,
@@ -65,7 +66,9 @@ import {
 } from './helpers/slicing'
 
 import {
-  makePairs
+  makePairs,
+  getArrayMinimum,
+  getArrayMaximum
 } from './helpers/ramda-utils'
 
 import onResize from './helpers/onresize'
@@ -76,7 +79,8 @@ const DEFAULT_CONFIG = {
   offset: 0,
   limit: Infinity,
   gap: '30px',
-  maxColumnsGetter: () => Infinity
+  maxColumnsGetter: () => Infinity,
+  minColumnsGetter: () => 0
 }
 
 const render = (columns, elements, measuredWidth) => {
@@ -174,12 +178,72 @@ function splitArticle (rawConfig) {
   if (length(config.targets)) {
     const sourceChildren = slice(config.offset, config.limit, children(config.source))
 
-    let targets = config.targets
+    const gotMoreContent = () => render(getColumns(config.targets), sourceChildren, measuredWidth)
 
-    do {
-      targets = reject(target => length(children(target)) >= config.maxColumnsGetter(target), targets)
-      addColumnTo(measuredWidth, getNextTarget(targets))
-    } while (render(getColumns(config.targets), sourceChildren, measuredWidth))
+    const minColumnTargets = filter(compose(gt(__, 0), config.minColumnsGetter), config.targets)
+
+    if (length(minColumnTargets)) {
+      // [A] - work only with targets, that have mincolumn restriction
+
+      let targets = clone(minColumnTargets)
+
+      do {
+        targets = reject(target => length(children(target)) >= config.minColumnsGetter(target), targets)
+        if (length(targets)) {
+          addColumnTo(measuredWidth, getNextTarget(targets))
+        }
+      } while (length(targets) && gotMoreContent())
+      // bug: gotMoreContents() doesn't work, when there are no columns, so the loop cannot be switched to a normal while loop
+    }
+
+    if (length(minColumnTargets) && gotMoreContent()) {
+      // [B.1] - work with targets, that have no mincolumn restriction until they reach min(mincolumn targets)
+
+      let targets = filter(target => config.minColumnsGetter(target) === 0, config.targets)
+      const smallestMinColumn = compose(
+        getArrayMinimum,
+        map(config.minColumnsGetter)
+      )(minColumnTargets)
+
+      do {
+        targets = reject(target => length(children(target)) >= min(smallestMinColumn, config.maxColumnsGetter(target)), targets)
+        if (length(targets)) {
+          addColumnTo(measuredWidth, getNextTarget(targets))
+        }
+      } while (length(targets) && gotMoreContent())
+    }
+
+    if (length(minColumnTargets) > 1 && gotMoreContent()) {
+      const columnsOfMinColumnTargets = map(config.minColumnsGetter)(minColumnTargets)
+      const smallestMinColumn = getArrayMinimum(columnsOfMinColumnTargets)
+      const largestMinColumn = getArrayMaximum(columnsOfMinColumnTargets)
+
+      if (largestMinColumn - smallestMinColumn > 0) {
+        // [B.2] - add more and more targets with mincolumn restriction, which are less, than max(mincolumn targets)
+
+        for (let threshold = smallestMinColumn; threshold <= largestMinColumn; threshold++) {
+          let targets = filter(target => length(children(target)) < min(threshold + 1, config.maxColumnsGetter(target)), config.targets)
+
+          do {
+            targets = reject(target => length(children(target)) >= threshold, targets)
+            if (length(targets)) {
+              addColumnTo(measuredWidth, getNextTarget(targets))
+            }
+          } while (length(targets) && gotMoreContent())
+        }
+      }
+    }
+
+    if (!length(minColumnTargets) || gotMoreContent()) {
+      // [C] - continue as normal
+
+      let targets = config.targets
+
+      do {
+        targets = reject(target => length(children(target)) >= config.maxColumnsGetter(target), targets)
+        addColumnTo(measuredWidth, getNextTarget(targets))
+      } while (gotMoreContent())
+    }
 
     // add margin-left to every column in target, except the first
     compose(

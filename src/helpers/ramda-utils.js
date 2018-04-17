@@ -1,5 +1,6 @@
 import {
   reduce,
+  min,
   max,
   not,
   addIndex,
@@ -9,6 +10,7 @@ import {
 } from 'ramda'
 
 const getArrayMaximum = reduce(max, -Infinity)
+const getArrayMinimum = reduce(min, Infinity)
 
 const isEven = a => a % 2 === 0
 
@@ -22,6 +24,7 @@ const makePairs = converge(
 
 export {
   getArrayMaximum,
+  getArrayMinimum,
   isEven,
   makePairs
 }

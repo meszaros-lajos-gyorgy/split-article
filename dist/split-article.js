@@ -1,4 +1,4 @@
-// split-article - created by Lajos Meszaros <m_lajos@hotmail.com> - MIT licence - last built on 2017-10-19
+// split-article - created by Lajos Meszaros <m_lajos@hotmail.com> - MIT licence - last built on 2018-04-17
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define(factory) :
@@ -1212,6 +1212,30 @@ var max = /*#__PURE__*/_curry2_1(function max(a, b) {
   return b > a ? b : a;
 });
 var max_1 = max;
+
+/**
+ * Returns the smaller of its two arguments.
+ *
+ * @func
+ * @memberOf R
+ * @since v0.1.0
+ * @category Relation
+ * @sig Ord a => a -> a -> a
+ * @param {*} a
+ * @param {*} b
+ * @return {*}
+ * @see R.minBy, R.max
+ * @example
+ *
+ *      R.min(789, 123); //=> 123
+ *      R.min('a', 'b'); //=> 'a'
+ */
+
+
+var min = /*#__PURE__*/_curry2_1(function min(a, b) {
+  return b < a ? b : a;
+});
+var min_1 = min;
 
 /**
  * Adds two values.
@@ -2984,6 +3008,7 @@ var converge = /*#__PURE__*/_curry2_1(function converge(after, fns) {
 var converge_1 = converge;
 
 var getArrayMaximum = reduce_1(max_1, -Infinity);
+var getArrayMinimum = reduce_1(min_1, Infinity);
 
 var isEven = function (a) { return a % 2 === 0; };
 
@@ -3012,33 +3037,30 @@ var createColumn = function (width) { return compose_1(
 
 var addColumnTo = curry_1(function (width, target) { return appendTo(target, createColumn(width)); });
 
-var maxColumnPerTarget = compose_1(getArrayMaximum, map_1(compose_1(length_1, children)));
-
 var getCurrentTargetIndex = function (targets) {
   var numberOfTargets = length_1(targets);
-  var columns = getColumnsPerTarget(targets);
-  var numberOfColumns = map_1(length_1, columns);
+  var numberOfColumns = map_1(length_1, getColumnsPerTarget(targets));
   var mostColumnAmount = getArrayMaximum(numberOfColumns);
 
-  return (
-    mostColumnAmount === 0
-    ? -1
-    : compose_1(
-      dec_1,
-      when_1(
-        equals_1(-1),
-        always_1(numberOfTargets)
-      ),
-      findIndex_1(gt_1(mostColumnAmount))
-    )(numberOfColumns)
-  )
+  // finds the index of the first element, which is less, than mostColumnAmount
+  // if every element is the same, then pick the last
+  var tmp = compose_1(
+    dec_1,
+    when_1(
+      equals_1(-1),
+      always_1(numberOfTargets)
+    ),
+    findIndex_1(gt_1(mostColumnAmount))
+  );
+
+  return mostColumnAmount === 0 ? -1 : tmp(numberOfColumns)
 };
 
 var getNextTargetIndex = function (targets) {
   var currentIndex = getCurrentTargetIndex(targets);
   var nextIndex = currentIndex + 1;
   var lastIndex = length_1(targets) - 1;
-  return currentIndex === -1 || currentIndex === lastIndex ? 0 : nextIndex
+  return (currentIndex === -1 || currentIndex === lastIndex) ? 0 : nextIndex
 };
 
 var getNextTarget = function (targets) {
@@ -3856,7 +3878,8 @@ var DEFAULT_CONFIG = {
   offset: 0,
   limit: Infinity,
   gap: '30px',
-  maxColumnsGetter: function () { return Infinity; }
+  maxColumnsGetter: function () { return Infinity; },
+  minColumnsGetter: function () { return 0; }
 };
 
 var render = function (columns, elements, measuredWidth) {
@@ -3962,12 +3985,74 @@ function splitArticle (rawConfig) {
   if (length_1(config.targets)) {
     var sourceChildren = slice_1(config.offset, config.limit, children(config.source));
 
-    var targets = config.targets;
+    var gotMoreContent = function () { return render(getColumns(config.targets), sourceChildren, measuredWidth); };
 
-    do {
-      targets = reject_1(function (target) { return length_1(children(target)) >= config.maxColumnsGetter(target); }, targets);
-      addColumnTo(measuredWidth, getNextTarget(targets));
-    } while (render(getColumns(config.targets), sourceChildren, measuredWidth))
+    var minColumnTargets = filter_1(compose_1(gt_1(__, 0), config.minColumnsGetter), config.targets);
+
+    if (length_1(minColumnTargets)) {
+      // [A] - work only with targets, that have mincolumn restriction
+
+      var targets = clone_1(minColumnTargets);
+
+      do {
+        targets = reject_1(function (target) { return length_1(children(target)) >= config.minColumnsGetter(target); }, targets);
+        if (length_1(targets)) {
+          addColumnTo(measuredWidth, getNextTarget(targets));
+        }
+      } while (length_1(targets) && gotMoreContent())
+      // bug: gotMoreContents() doesn't work, when there are no columns, so the loop cannot be switched to a normal while loop
+    }
+
+    if (length_1(minColumnTargets) && gotMoreContent()) {
+      // [B.1] - work with targets, that have no mincolumn restriction until they reach min(mincolumn targets)
+
+      var targets$1 = filter_1(function (target) { return config.minColumnsGetter(target) === 0; }, config.targets);
+      var smallestMinColumn = compose_1(
+        getArrayMinimum,
+        map_1(config.minColumnsGetter)
+      )(minColumnTargets);
+
+      do {
+        targets$1 = reject_1(function (target) { return length_1(children(target)) >= min_1(smallestMinColumn, config.maxColumnsGetter(target)); }, targets$1);
+        if (length_1(targets$1)) {
+          addColumnTo(measuredWidth, getNextTarget(targets$1));
+        }
+      } while (length_1(targets$1) && gotMoreContent())
+    }
+
+    if (length_1(minColumnTargets) > 1 && gotMoreContent()) {
+      var columnsOfMinColumnTargets = map_1(config.minColumnsGetter)(minColumnTargets);
+      var smallestMinColumn$1 = getArrayMinimum(columnsOfMinColumnTargets);
+      var largestMinColumn = getArrayMaximum(columnsOfMinColumnTargets);
+
+      if (largestMinColumn - smallestMinColumn$1 > 0) {
+        // [B.2] - add more and more targets with mincolumn restriction, which are less, than max(mincolumn targets)
+
+        var loop = function ( threshold ) {
+          var targets$2 = filter_1(function (target) { return length_1(children(target)) < min_1(threshold + 1, config.maxColumnsGetter(target)); }, config.targets);
+
+          do {
+            targets$2 = reject_1(function (target) { return length_1(children(target)) >= threshold; }, targets$2);
+            if (length_1(targets$2)) {
+              addColumnTo(measuredWidth, getNextTarget(targets$2));
+            }
+          } while (length_1(targets$2) && gotMoreContent())
+        };
+
+        for (var threshold = smallestMinColumn$1; threshold <= largestMinColumn; threshold++) loop( threshold );
+      }
+    }
+
+    if (!length_1(minColumnTargets) || gotMoreContent()) {
+      // [C] - continue as normal
+
+      var targets$3 = config.targets;
+
+      do {
+        targets$3 = reject_1(function (target) { return length_1(children(target)) >= config.maxColumnsGetter(target); }, targets$3);
+        addColumnTo(measuredWidth, getNextTarget(targets$3));
+      } while (gotMoreContent())
+    }
 
     // add margin-left to every column in target, except the first
     compose_1(

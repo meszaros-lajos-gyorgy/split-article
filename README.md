@@ -79,7 +79,14 @@ final element. *(see offset config property)*
 > When there are multiple columns in a target, then columns are separated by
 a gap, which can accepty any CSS width value.
 
-**maxColumnsGetter :** *(optional)* `function`
+**maxColumnsGetter :** *(optional)* `<function> | default: () => Infinity`
+
+> The value for this key should be a function, which will be called by splitArticles
+for every target. splitArticle expects an integer as a result of the function, which will
+be compared to the number of columns the target would normally get through automatic
+distribution. The function is called with a single argument: the current target element.
+
+**minColumnsGetter :** *(optional)* `<function> | default: () => 0`
 
 > TODO: add description
 

@@ -40,33 +40,30 @@ const createColumn = width => compose(
 
 const addColumnTo = curry((width, target) => appendTo(target, createColumn(width)))
 
-const maxColumnPerTarget = compose(getArrayMaximum, map(compose(length, children)))
-
 const getCurrentTargetIndex = targets => {
   const numberOfTargets = length(targets)
-  const columns = getColumnsPerTarget(targets)
-  const numberOfColumns = map(length, columns)
+  const numberOfColumns = map(length, getColumnsPerTarget(targets))
   const mostColumnAmount = getArrayMaximum(numberOfColumns)
 
-  return (
-    mostColumnAmount === 0
-    ? -1
-    : compose(
-      dec,
-      when(
-        equals(-1),
-        always(numberOfTargets)
-      ),
-      findIndex(gt(mostColumnAmount))
-    )(numberOfColumns)
+  // finds the index of the first element, which is less, than mostColumnAmount
+  // if every element is the same, then pick the last
+  const tmp = compose(
+    dec,
+    when(
+      equals(-1),
+      always(numberOfTargets)
+    ),
+    findIndex(gt(mostColumnAmount))
   )
+
+  return mostColumnAmount === 0 ? -1 : tmp(numberOfColumns)
 }
 
 const getNextTargetIndex = targets => {
   const currentIndex = getCurrentTargetIndex(targets)
   const nextIndex = currentIndex + 1
   const lastIndex = length(targets) - 1
-  return currentIndex === -1 || currentIndex === lastIndex ? 0 : nextIndex
+  return (currentIndex === -1 || currentIndex === lastIndex) ? 0 : nextIndex
 }
 
 const getCurrentTarget = targets => {
@@ -82,7 +79,6 @@ export {
   getColumns,
   createColumn,
   addColumnTo,
-  maxColumnPerTarget,
   getCurrentTargetIndex,
   getNextTargetIndex,
   getCurrentTarget,
